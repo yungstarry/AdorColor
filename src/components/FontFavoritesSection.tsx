@@ -1,0 +1,15 @@
+import type { Dispatch, SetStateAction } from 'react';
+import { CombinationCard, FontCard } from './FontSelectorCards';
+import type { FontEntry, LibraryState, Section } from './fontSelectorModel';
+
+export interface FontFavoritesSectionProps { library: LibraryState; filteredFonts: FontEntry[]; compareIds: string[]; setCompareIds: Dispatch<SetStateAction<string[]>>; fontsByName: Map<string, FontEntry>; fontsById: Map<string, FontEntry>; setLibrary: Dispatch<SetStateAction<LibraryState>>; markUsed: (ids: string[]) => void; persistFontUpdate: (id: string, update: Partial<FontEntry>) => void; toggleFontFavorite: (font: FontEntry) => void; addFontToProject: (font: FontEntry, projectId: string) => void; deleteFont: (id: string) => void; setSection: (section: Section) => void; }
+
+export function FontFavoritesSection({ library, filteredFonts, compareIds, setCompareIds, fontsByName, fontsById, setLibrary, markUsed, persistFontUpdate, toggleFontFavorite, addFontToProject, deleteFont, setSection }: FontFavoritesSectionProps) {
+  return (
+<div className="space-y-6">
+            <section><h2 className="mb-3 text-sm font-bold text-white">Favorite Fonts</h2>{filteredFonts.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredFonts.map((font) => <FontCard key={font.id} font={font} library={library} compareIds={compareIds} onFontUpdate={persistFontUpdate} onToggleFavorite={toggleFontFavorite} onCompare={(id) => setCompareIds((current) => current.includes(id) ? current.filter((item) => item !== id) : current.length < 4 ? [...current, id] : current)} onAddToProject={addFontToProject} onDelete={deleteFont} />)}</div> : <p className="rounded-xl border border-[#303c50] bg-[#111722] p-5 text-xs text-[#c0cada]">No favorite fonts yet.</p>}</section>
+            <section><h2 className="mb-3 text-sm font-bold text-white">Favorite Combinations</h2>{library.combinations.filter((item) => item.favorite).length ? <div className="grid gap-4 xl:grid-cols-2">{library.combinations.filter((item) => item.favorite).map((combo) => <CombinationCard key={combo.id} combo={combo} library={library} setLibrary={setLibrary} fontsByName={fontsByName} fontsById={fontsById} markUsed={markUsed} />)}</div> : <p className="rounded-xl border border-[#303c50] bg-[#111722] p-5 text-xs text-[#c0cada]">No favorite combinations yet.</p>}</section>
+            <section><h2 className="mb-3 text-sm font-bold text-white">Favorite Project Sets</h2>{library.projects.filter((item) => item.favorite).length ? <div className="grid gap-3 sm:grid-cols-2">{library.projects.filter((item) => item.favorite).map((item) => <button key={item.id} type="button" onClick={() => setSection('projects')} className="rounded-xl border border-[#303c50] bg-[#111722] p-4 text-left"><p className="text-sm font-bold text-white">{item.name}</p><p className="mt-1 text-xs text-[#bdc8d8]">{item.fontIds.map((id) => fontsById.get(id)?.name).filter(Boolean).join(' · ')}</p></button>)}</div> : <p className="rounded-xl border border-[#303c50] bg-[#111722] p-5 text-xs text-[#c0cada]">No favorite project sets yet.</p>}</section>
+          </div>
+  );
+}
