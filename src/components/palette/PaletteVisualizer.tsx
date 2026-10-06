@@ -1,34 +1,35 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Eye,
-  Smartphone,
-  Globe,
-  LayoutDashboard,
-  Sparkles,
-  FileText,
-  Layers,
-  TrendingUp,
-  Briefcase,
+  Activity,
+  Bookmark,
   ClipboardPaste,
-  RotateCcw,
+  Copy,
+  Download,
+  Eye,
   Film,
   Heart,
+  Layers,
   MessageCircle,
-  Share2,
-  Bookmark,
+  Monitor,
   Music2,
-  Sliders,
-  Copy,
+  RotateCcw,
+  Share2,
   SlidersHorizontal,
+  Smartphone,
+  Sparkles,
+  Type,
   Video,
 } from "lucide-react";
 import { Palette, PaletteColor } from "../../types";
 import {
   buildPaletteColor,
-  isLightColor,
   generateHarmonicColors,
   rgbToHex,
 } from "../../utils/colorUtils";
+
+/* ─────────────────────────────────────────────────────────────
+ * Props (unchanged, so App and VideoBriefStudio need no edits)
+ * ───────────────────────────────────────────────────────────── */
 
 interface PaletteVisualizerProps {
   palette: Palette;
@@ -41,28 +42,148 @@ interface PaletteVisualizerProps {
   onToast: (msg: string) => void;
 }
 
-type VisualizerTab =
-  | "web"
-  | "mobile"
-  | "reels"
-  | "dashboard"
-  | "branding"
-  | "poster"
-  | "typography";
+/* ─────────────────────────────────────────────────────────────
+ * Types and option lists
+ * ───────────────────────────────────────────────────────────── */
+
+type RGB = [number, number, number];
+type Icon = React.ComponentType<{
+  className?: string;
+  style?: React.CSSProperties;
+}>;
+type TemplateId = "reel" | "thumbnail" | "lower" | "title" | "captions";
+type AspectId = "9:16" | "4:5" | "1:1" | "16:9" | "21:9";
+type BackdropId = "palette" | "solid" | "day" | "night" | "busy";
+type GuideId = "off" | "safe" | "thirds";
+type VisionId = "none" | "value" | "protan" | "deutan" | "tritan";
+type TextMode = "auto" | "light" | "dark" | "palette";
+type InspectorTab = "roles" | "legibility" | "scopes" | "handoff";
+type HandoffFormat =
+  | "spec"
+  | "hex"
+  | "rgb255"
+  | "rgb01"
+  | "hsl"
+  | "css"
+  | "ass"
+  | "srt"
+  | "json";
+
+const TEMPLATES: { id: TemplateId; label: string; icon: Icon }[] = [
+  { id: "reel", label: "Reel / Short", icon: Smartphone },
+  { id: "thumbnail", label: "Thumbnail", icon: Monitor },
+  { id: "lower", label: "Lower third", icon: Film },
+  { id: "title", label: "Title card", icon: Type },
+  { id: "captions", label: "Captions", icon: MessageCircle },
+];
+
+const ASPECTS: Record<AspectId, { w: number; h: number; hint: string }> = {
+  "9:16": { w: 338, h: 600, hint: "Reels, TikTok, Shorts" },
+  "4:5": { w: 480, h: 600, hint: "Feed portrait" },
+  "1:1": { w: 540, h: 540, hint: "Square" },
+  "16:9": { w: 800, h: 450, hint: "YouTube, HD" },
+  "21:9": { w: 840, h: 360, hint: "Cinematic" },
+};
+const ASPECT_IDS = Object.keys(ASPECTS) as AspectId[];
+
+const BACKDROPS: { id: BackdropId; label: string; title: string }[] = [
+  { id: "palette", label: "Palette", title: "Palette gradient" },
+  { id: "solid", label: "Solid", title: "Solid dominant color" },
+  { id: "day", label: "Day", title: "Bright footage stand-in" },
+  { id: "night", label: "Night", title: "Dark footage stand-in" },
+  { id: "busy", label: "Busy", title: "High-detail stress test" },
+];
+
+const GUIDES: { id: GuideId; label: string }[] = [
+  { id: "off", label: "Off" },
+  { id: "safe", label: "Safe zones" },
+  { id: "thirds", label: "Thirds" },
+];
+
+const VISIONS: { id: VisionId; label: string; title: string }[] = [
+  { id: "none", label: "Normal", title: "True color" },
+  { id: "value", label: "Value", title: "Black and white value check" },
+  { id: "protan", label: "Protan", title: "Protanopia (red-weak)" },
+  { id: "deutan", label: "Deutan", title: "Deuteranopia (green-weak)" },
+  { id: "tritan", label: "Tritan", title: "Tritanopia (blue-weak)" },
+];
+
+const TEXT_MODES: { id: TextMode; label: string; title: string }[] = [
+  { id: "auto", label: "Auto", title: "Black or white, whichever reads best" },
+  { id: "light", label: "White", title: "Always white text" },
+  { id: "dark", label: "Black", title: "Always near-black text" },
+  { id: "palette", label: "Palette", title: "Best-contrast palette color" },
+];
+
+const INSPECTOR_TABS: { id: InspectorTab; label: string; icon: Icon }[] = [
+  { id: "roles", label: "Roles", icon: Layers },
+  { id: "legibility", label: "Legibility", icon: Eye },
+  { id: "scopes", label: "Scopes", icon: Activity },
+  { id: "handoff", label: "Handoff", icon: Download },
+];
+
+const HANDOFF_FORMATS: { id: HandoffFormat; label: string }[] = [
+  { id: "spec", label: "60-30-10 spec" },
+  { id: "hex", label: "HEX (CapCut, Premiere)" },
+  { id: "rgb255", label: "RGB 0 to 255 (Final Cut)" },
+  { id: "rgb01", label: "RGB 0 to 1 (After Effects, Fusion)" },
+  { id: "hsl", label: "HSL" },
+  { id: "css", label: "CSS variables" },
+  { id: "ass", label: "ASS subtitles (Aegisub)" },
+  { id: "srt", label: "SRT font tags" },
+  { id: "json", label: "JSON" },
+];
+
+const isOneOf =
+  <T extends string>(list: readonly T[]) =>
+  (v: unknown): v is T =>
+    typeof v === "string" && (list as readonly string[]).includes(v);
+const isNumber = (v: unknown): v is number =>
+  typeof v === "number" && Number.isFinite(v);
+const isBool = (v: unknown): v is boolean => typeof v === "boolean";
+const isString = (v: unknown): v is string => typeof v === "string";
+
+/* ─────────────────────────────────────────────────────────────
+ * Capture settings (vector SVG snapshot for the Video Brief)
+ * ───────────────────────────────────────────────────────────── */
+
+const CAPTURE_SCALE = 3;
+const MAX_CAPTURE_SIDE = 5000;
+
+const ALWAYS_COPY_PROPERTY =
+  /^(font|color$|line-height|letter-spacing|text-|white-space|word-|direction|visibility|fill|stroke|list-style|-webkit-text|-webkit-box|box-decoration|paint-order|tab-size|border-spacing|quotes|caption|empty-cells|cursor|pointer-events|width|height|min-|max-|inline-size|block-size|top|left|right|bottom|margin|padding|display|position|flex|grid|gap|overflow|box-sizing|align|justify|order|z-index|transform|opacity|background|border|outline|box-shadow|filter|backdrop|-webkit-backdrop|mix-blend|object-|aspect-ratio)/;
+
+const defaultStyleCache = new Map<string, Record<string, string>>();
+
+const getDefaultStyle = (source: Element): Record<string, string> | null => {
+  if (source.namespaceURI !== "http://www.w3.org/1999/xhtml") return null;
+  const key = source.tagName;
+  const cached = defaultStyleCache.get(key);
+  if (cached) return cached;
+
+  const host = document.createElement("div");
+  host.style.cssText =
+    "position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none;";
+  const probe = document.createElement(key);
+  host.appendChild(probe);
+  document.body.appendChild(host);
+  const computed = getComputedStyle(probe);
+  const snapshot: Record<string, string> = {};
+  for (let index = 0; index < computed.length; index += 1) {
+    const property = computed[index];
+    snapshot[property] = computed.getPropertyValue(property);
+  }
+  document.body.removeChild(host);
+  defaultStyleCache.set(key, snapshot);
+  return snapshot;
+};
 
 /**
- * Capture sharpness settings.
- * The preview is rasterized at CAPTURE_SCALE times its on-screen size (this was
- * 1.5 before, which is what made the exported brief look soft). The longest side
- * is capped so the saved image stays a reasonable size.
- * If the saved briefs get too large for your storage, lower CAPTURE_SCALE to 1.75
- * or CAPTURE_JPEG_QUALITY to 0.88.
+ * Captures an element as a self-contained, resolution-independent SVG data URL.
+ * Anything marked data-capture-skip (guides, hints) is left out, and any
+ * color-vision filter is removed so the brief always shows true colors.
  */
-const CAPTURE_SCALE = 2.5;
-const MAX_CAPTURE_SIDE = 4000;
-const CAPTURE_JPEG_QUALITY = 0.93;
-
-const captureElementAsJpeg = async (element: HTMLElement): Promise<string> => {
+const captureElementAsSvg = async (element: HTMLElement): Promise<string> => {
   const bounds = element.getBoundingClientRect();
   const width = Math.ceil(bounds.width);
   const height = Math.ceil(Math.max(bounds.height, element.scrollHeight));
@@ -73,11 +194,20 @@ const captureElementAsJpeg = async (element: HTMLElement): Promise<string> => {
   const copyStyles = (source: Element, target: Element) => {
     const sourceStyle = getComputedStyle(source);
     const targetStyle = (target as HTMLElement).style;
+    const defaults = getDefaultStyle(source);
     for (let index = 0; index < sourceStyle.length; index += 1) {
       const property = sourceStyle[index];
+      const value = sourceStyle.getPropertyValue(property);
+      if (
+        defaults &&
+        !ALWAYS_COPY_PROPERTY.test(property) &&
+        defaults[property] === value
+      ) {
+        continue;
+      }
       targetStyle.setProperty(
         property,
-        sourceStyle.getPropertyValue(property),
+        value,
         sourceStyle.getPropertyPriority(property),
       );
     }
@@ -109,62 +239,39 @@ const captureElementAsJpeg = async (element: HTMLElement): Promise<string> => {
     });
   };
   copyStyles(element, clone);
-  const palettePanel = clone.querySelector<HTMLElement>(
-    '[data-visualizer-export-panel="palette"]',
-  );
-  const varietyPanel = clone.querySelector<HTMLElement>(
-    '[data-visualizer-export-panel="variety"]',
-  );
-  const phonePreview = clone.querySelector<HTMLElement>(
-    '[data-visualizer-export-panel="phone"]',
-  );
-  if (palettePanel && varietyPanel && phonePreview) {
-    const controls = document.createElement("div");
-    controls.style.cssText =
-      "display:flex;flex:0 0 330px;flex-direction:column;gap:12px;width:330px;";
-    controls.append(palettePanel, varietyPanel);
-    clone.replaceChildren(controls, phonePreview);
-    clone.style.display = "flex";
-    clone.style.flexDirection = "row";
-    clone.style.alignItems = "center";
-    clone.style.justifyContent = "center";
-    clone.style.gap = "24px";
-    clone.style.padding = "24px";
-    clone.style.boxSizing = "border-box";
-    clone.style.width = "732px";
-    clone.style.height = "668px";
-    clone.style.minHeight = "0";
-    phonePreview.style.width = "330px";
-    phonePreview.style.height = "620px";
-    phonePreview.style.flex = "0 0 330px";
-    phonePreview.style.margin = "0";
-  } else {
-    clone.style.width = `${width}px`;
-    clone.style.height = `${height}px`;
-  }
+
+  clone
+    .querySelectorAll("[data-capture-skip]")
+    .forEach((node) => node.parentNode?.removeChild(node));
+  clone.querySelectorAll<HTMLElement>("[data-cvd-target]").forEach((node) => {
+    node.style.filter = "none";
+  });
+
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
   clone.style.maxWidth = "none";
   clone.style.margin = "0";
   clone.style.transform = "none";
+  if (
+    !clone.style.backgroundColor ||
+    clone.style.backgroundColor === "rgba(0, 0, 0, 0)"
+  ) {
+    clone.style.backgroundColor = "#ffffff";
+  }
   clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
 
-  const captureWidth = parseInt(clone.style.width, 10) || width;
-  const captureHeight = parseInt(clone.style.height, 10) || height;
   const scale = Math.max(
     1,
-    Math.min(
-      CAPTURE_SCALE,
-      MAX_CAPTURE_SIDE / Math.max(captureWidth, captureHeight),
-    ),
+    Math.min(CAPTURE_SCALE, MAX_CAPTURE_SIDE / Math.max(width, height)),
   );
-  const outputWidth = Math.ceil(captureWidth * scale);
-  const outputHeight = Math.ceil(captureHeight * scale);
+  const outputWidth = Math.ceil(width * scale);
+  const outputHeight = Math.ceil(height * scale);
 
-  // The SVG is sized at the output resolution while the viewBox stays at the
-  // layout size, so the browser renders the HTML at full resolution (not a
-  // blurry upscaled bitmap).
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${captureWidth} ${captureHeight}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(clone)}</foreignObject></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(clone)}</foreignObject></svg>`;
+  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
   const image = new Image();
-  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  image.src = dataUrl;
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
     image.onerror = () =>
@@ -173,18 +280,421 @@ const captureElementAsJpeg = async (element: HTMLElement): Promise<string> => {
       );
   });
 
-  const canvas = document.createElement("canvas");
-  canvas.width = outputWidth;
-  canvas.height = outputHeight;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Canvas is unavailable in this browser.");
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", CAPTURE_JPEG_QUALITY);
+  return dataUrl;
 };
+
+/* ─────────────────────────────────────────────────────────────
+ * Color math (local, so no other file has to change)
+ * ───────────────────────────────────────────────────────────── */
+
+const INK = "#0B0F19";
+const PAPER = "#FFFFFF";
+
+const hexToRgb = (hex: string): RGB => {
+  let h = hex.trim().replace("#", "");
+  if (h.length === 3)
+    h = h
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  if (h.length === 8) h = h.slice(0, 6);
+  const n = parseInt(h, 16);
+  if (h.length !== 6 || Number.isNaN(n)) return [0, 0, 0];
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+const rgbToHexStr = ([r, g, b]: RGB): string =>
+  "#" +
+  [r, g, b]
+    .map((v) =>
+      Math.round(Math.min(255, Math.max(0, v)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")
+    .toUpperCase();
+
+const toLinear = (c: number) => {
+  const v = c / 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+};
+
+const relLuminance = (hex: string) => {
+  const [r, g, b] = hexToRgb(hex);
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+};
+
+const contrast = (a: string, b: string) => {
+  const la = relLuminance(a);
+  const lb = relLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+};
+
+/** Rec. 709 luma of the gamma-encoded color, 0 to 1 (what a waveform shows). */
+const lumaPrime = (hex: string) => {
+  const [r, g, b] = hexToRgb(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+};
+
+const rgbToHsl = ([r, g, b]: RGB): [number, number, number] => {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  let h: number;
+  if (max === rn) h = ((gn - bn) / d) % 6;
+  else if (max === gn) h = (bn - rn) / d + 2;
+  else h = (rn - gn) / d + 4;
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+  return [h, s, l];
+};
+
+const toLab = (hex: string): [number, number, number] => {
+  const [r, g, b] = hexToRgb(hex).map(toLinear);
+  const x = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047;
+  const y = 0.2126729 * r + 0.7151522 * g + 0.072175 * b;
+  const z = (0.0193339 * r + 0.119192 * g + 0.9503041 * b) / 1.08883;
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+};
+
+const deltaE = (a: string, b: string) => {
+  const [l1, a1, b1] = toLab(a);
+  const [l2, a2, b2] = toLab(b);
+  return Math.sqrt((l1 - l2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2);
+};
+
+const mixHex = (a: string, b: string, t: number) => {
+  const ca = hexToRgb(a);
+  const cb = hexToRgb(b);
+  return rgbToHexStr([
+    ca[0] + (cb[0] - ca[0]) * t,
+    ca[1] + (cb[1] - ca[1]) * t,
+    ca[2] + (cb[2] - ca[2]) * t,
+  ]);
+};
+
+/* Machado et al. (2009), severity 1.0. Row-major 3x3. */
+const CVD_MATRICES: Record<"protan" | "deutan" | "tritan", number[]> = {
+  protan: [
+    0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882,
+    -0.048116, 1.051998,
+  ],
+  deutan: [
+    0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182,
+    0.04294, 0.968881,
+  ],
+  tritan: [
+    1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733,
+    0.691367, 0.3039,
+  ],
+};
+
+const simulateVision = (hex: string, mode: VisionId): string => {
+  if (mode === "none") return hex;
+  const [r, g, b] = hexToRgb(hex);
+  if (mode === "value") {
+    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return rgbToHexStr([y, y, y]);
+  }
+  const m = CVD_MATRICES[mode];
+  return rgbToHexStr([
+    m[0] * r + m[1] * g + m[2] * b,
+    m[3] * r + m[4] * g + m[5] * b,
+    m[6] * r + m[7] * g + m[8] * b,
+  ]);
+};
+
+const visionFilterValue = (mode: VisionId): string => {
+  if (mode === "none") return "none";
+  if (mode === "value") return "grayscale(1)";
+  return `url(#plv-${mode})`;
+};
+
+/** Picks dominant / secondary / accent automatically from the colors' character. */
+const smartRoles = (hexes: string[]): [number, number, number] => {
+  const n = hexes.length;
+  if (n < 3) return getPermutationForVariety(0, n);
+  const hsl = hexes.map((h) => rgbToHsl(hexToRgb(h)));
+  const argmax = (indices: number[], score: (i: number) => number) =>
+    indices.reduce((best, i) => (score(i) > score(best) ? i : best));
+  const all = hexes.map((_, i) => i);
+  const acc = argmax(all, (i) => hsl[i][1] * (1 - Math.abs(2 * hsl[i][2] - 1)));
+  const rest = all.filter((i) => i !== acc);
+  const dom = argmax(
+    rest,
+    (i) => Math.abs(hsl[i][2] - 0.5) + (1 - hsl[i][1]) * 0.25,
+  );
+  const rest2 = rest.filter((i) => i !== dom);
+  const sec = argmax(rest2, (i) => contrast(hexes[i], hexes[dom]));
+  return [dom, sec, acc];
+};
+
+/* ─────────────────────────────────────────────────────────────
+ * Small helpers
+ * ───────────────────────────────────────────────────────────── */
+
+const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+
+function useStoredState<T>(
+  key: string,
+  initial: T,
+  validate?: (v: unknown) => v is T,
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return initial;
+      const parsed: unknown = JSON.parse(raw);
+      if (validate && !validate(parsed)) return initial;
+      return parsed as T;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      /* storage can be full or blocked; the visualizer still works */
+    }
+  }, [key, value]);
+  return [value, setValue];
+}
+
+const downloadText = (text: string, filename: string, mime = "text/plain") => {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+const slug = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "palette";
+
+const textGrade = (ratio: number) => {
+  if (ratio >= 7)
+    return { label: "AAA", cls: "bg-emerald-50 text-emerald-700" };
+  if (ratio >= 4.5) return { label: "AA", cls: "bg-emerald-50 text-emerald-700" };
+  if (ratio >= 3)
+    return { label: "Large text only", cls: "bg-amber-50 text-amber-800" };
+  return { label: "Fails", cls: "bg-red-50 text-red-700" };
+};
+
+const shapeGrade = (ratio: number) => {
+  if (ratio >= 3) return { label: "Clear", cls: "bg-emerald-50 text-emerald-700" };
+  if (ratio >= 1.8) return { label: "Weak", cls: "bg-amber-50 text-amber-800" };
+  return { label: "Blends in", cls: "bg-red-50 text-red-700" };
+};
+
+const colorFlags = (hex: string): string[] => {
+  const out: string[] = [];
+  const y = lumaPrime(hex) * 255;
+  if (y < 16) out.push("Below legal black");
+  if (y > 235) out.push("Above legal white");
+  const [r, g, b] = hexToRgb(hex);
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  const sat = mx === 0 ? 0 : (mx - mn) / mx;
+  if (sat > 0.92 && mx > 215) out.push("Hot saturation, may bleed");
+  return out;
+};
+
+function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { id: T; label: string; icon?: Icon; title?: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-xl bg-gray-100 p-0.5">
+      {options.map((o) => {
+        const Ic = o.icon;
+        const on = o.id === value;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            title={o.title ?? o.label}
+            onClick={() => onChange(o.id)}
+            className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] transition-colors ${
+              on
+                ? "bg-white font-bold text-gray-900 shadow-xs"
+                : "font-semibold text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            {Ic && <Ic className="h-3.5 w-3.5" />}
+            <span>{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <div className="min-w-0">
+    <div className="mb-1 text-[10px] font-bold text-gray-400">{label}</div>
+    {children}
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────────
+ * Scopes
+ * ───────────────────────────────────────────────────────────── */
+
+const VectorScope: React.FC<{ colors: string[] }> = ({ colors }) => {
+  const c = 120;
+  const R = 100;
+  const k = R * 1.85;
+  const pos = (hex: string) => {
+    const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
+    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return { x: c + ((b - y) / 1.8556) * k, y: c - ((r - y) / 1.5748) * k };
+  };
+  const targets: [string, string][] = [
+    ["R", "#BF0000"],
+    ["Mg", "#BF00BF"],
+    ["B", "#0000BF"],
+    ["Cy", "#00BFBF"],
+    ["G", "#00BF00"],
+    ["Yl", "#BFBF00"],
+  ];
+  const skin = (123 * Math.PI) / 180;
+  return (
+    <svg
+      viewBox="0 0 240 240"
+      className="mx-auto w-full max-w-[240px]"
+      role="img"
+      aria-label="Vectorscope of the palette"
+    >
+      <circle cx={c} cy={c} r={R} fill="#0f172a" />
+      <circle cx={c} cy={c} r={R * 0.5} fill="none" stroke="#334155" />
+      <circle cx={c} cy={c} r={R} fill="none" stroke="#475569" />
+      <line x1={c - R} y1={c} x2={c + R} y2={c} stroke="#1e293b" />
+      <line x1={c} y1={c - R} x2={c} y2={c + R} stroke="#1e293b" />
+      <line
+        x1={c}
+        y1={c}
+        x2={c + R * Math.cos(skin)}
+        y2={c - R * Math.sin(skin)}
+        stroke="#f59e0b"
+        strokeDasharray="4 3"
+      />
+      {targets.map(([label, hex]) => {
+        const p = pos(hex);
+        return (
+          <g key={label}>
+            <rect
+              x={p.x - 7}
+              y={p.y - 7}
+              width={14}
+              height={14}
+              fill="none"
+              stroke="#64748b"
+            />
+            <text x={p.x} y={p.y + 3} fontSize="8" textAnchor="middle" fill="#94a3b8">
+              {label}
+            </text>
+          </g>
+        );
+      })}
+      {colors.map((hex, i) => {
+        const p = pos(hex);
+        return (
+          <g key={`${hex}-${i}`}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={7}
+              fill={hex}
+              stroke="#ffffff"
+              strokeWidth={2}
+            />
+            <text
+              x={p.x}
+              y={p.y - 11}
+              fontSize="9"
+              fontWeight="700"
+              textAnchor="middle"
+              fill="#e2e8f0"
+            >
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
+      <text x={c + R * Math.cos(skin) - 4} y={c - R * Math.sin(skin) - 4} fontSize="8" fill="#f59e0b">
+        skin
+      </text>
+    </svg>
+  );
+};
+
+const LumaBars: React.FC<{ colors: string[] }> = ({ colors }) => {
+  const top = 8;
+  const plotH = 132;
+  const bottom = top + plotH;
+  const left = 30;
+  const w = 260;
+  const slot = (w - left - 6) / Math.max(colors.length, 1);
+  const y = (frac: number) => bottom - frac * plotH;
+  return (
+    <svg
+      viewBox="0 0 260 164"
+      className="w-full"
+      role="img"
+      aria-label="Luma levels of the palette"
+    >
+      <rect x={left} y={top} width={w - left - 6} height={plotH} fill="#0f172a" rx={6} />
+      {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+        <g key={f}>
+          <line x1={left} x2={w - 6} y1={y(f)} y2={y(f)} stroke="#1e293b" />
+          <text x={left - 5} y={y(f) + 3} fontSize="8" textAnchor="end" fill="#94a3b8">
+            {Math.round(f * 100)}
+          </text>
+        </g>
+      ))}
+      <line x1={left} x2={w - 6} y1={y(16 / 255)} y2={y(16 / 255)} stroke="#f59e0b" strokeDasharray="3 3" />
+      <line x1={left} x2={w - 6} y1={y(235 / 255)} y2={y(235 / 255)} stroke="#f59e0b" strokeDasharray="3 3" />
+      {colors.map((hex, i) => {
+        const bh = Math.max(2, lumaPrime(hex) * plotH);
+        const bw = slot - 8;
+        const x = left + 4 + i * slot;
+        return (
+          <g key={`${hex}-${i}`}>
+            <rect x={x} y={bottom - bh} width={bw} height={bh} fill={hex} rx={3} stroke="#ffffff" strokeOpacity={0.5} />
+            <text x={x + bw / 2} y={bottom + 13} fontSize="9" fontWeight="700" textAnchor="middle" fill="#475569">
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────
+ * Exported helpers (kept, other files may import them)
+ * ───────────────────────────────────────────────────────────── */
 
 export function getPaletteFingerprint(p: Palette | null | undefined): string {
   if (!p) return "";
@@ -239,131 +749,236 @@ export function getPermutationForVariety(
   return [dom, sec, acc];
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * Component
+ * ───────────────────────────────────────────────────────────── */
+
 export const PaletteVisualizer: React.FC<PaletteVisualizerProps> = ({
   palette: initialPalette,
-  onPaletteChange,
   onOpenInContrast,
   onCreateVideoBrief,
   onToast,
 }) => {
-  const previewRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [creatingBrief, setCreatingBrief] = useState(false);
-  const [activeTab, setActiveTab] = useState<VisualizerTab>(() => {
-    const saved = localStorage.getItem("palettelab_visualizer_tab");
-    return (saved as VisualizerTab) || "reels";
-  });
+
+  const [tab, setTab] = useStoredState<InspectorTab>(
+    "palettelab_viz2_tab",
+    "roles",
+    isOneOf(INSPECTOR_TABS.map((t) => t.id)),
+  );
+  const [template, setTemplate] = useStoredState<TemplateId>(
+    "palettelab_viz2_template",
+    "reel",
+    isOneOf(TEMPLATES.map((t) => t.id)),
+  );
+  const [aspect, setAspect] = useStoredState<AspectId>(
+    "palettelab_viz2_aspect",
+    "9:16",
+    isOneOf(ASPECT_IDS),
+  );
+  const [backdrop, setBackdrop] = useStoredState<BackdropId>(
+    "palettelab_viz2_backdrop",
+    "palette",
+    isOneOf(BACKDROPS.map((b) => b.id)),
+  );
+  const [exposure, setExposure] = useStoredState<number>(
+    "palettelab_viz2_exposure",
+    50,
+    isNumber,
+  );
+  const [guides, setGuides] = useStoredState<GuideId>(
+    "palettelab_viz2_guides",
+    "off",
+    isOneOf(GUIDES.map((g) => g.id)),
+  );
+  const [platformUI, setPlatformUI] = useStoredState<boolean>(
+    "palettelab_viz2_platform_ui",
+    true,
+    isBool,
+  );
+  const [vision, setVision] = useStoredState<VisionId>(
+    "palettelab_viz2_vision",
+    "none",
+    isOneOf(VISIONS.map((v) => v.id)),
+  );
+  const [textMode, setTextMode] = useStoredState<TextMode>(
+    "palettelab_viz2_text_mode",
+    "auto",
+    isOneOf(TEXT_MODES.map((t) => t.id)),
+  );
+  const [handoffFormat, setHandoffFormat] = useStoredState<HandoffFormat>(
+    "palettelab_viz2_handoff",
+    "spec",
+    isOneOf(HANDOFF_FORMATS.map((f) => f.id)),
+  );
+  const [customInput, setCustomInput] = useStoredState<string>(
+    "palettelab_visualizer_custom_input",
+    "",
+    isString,
+  );
+  const [varietyIdx, setVarietyIdx] = useStoredState<number>(
+    "palettelab_reels_variety_idx",
+    0,
+    isNumber,
+  );
+  const [dominantRoleIdx, setDominantRoleIdx] = useStoredState<number>(
+    "palettelab_reels_dominant_idx",
+    0,
+    isNumber,
+  );
+  const [secondaryRoleIdx, setSecondaryRoleIdx] = useStoredState<number>(
+    "palettelab_reels_secondary_idx",
+    1,
+    isNumber,
+  );
+  const [accentRoleIdx, setAccentRoleIdx] = useStoredState<number>(
+    "palettelab_reels_accent_idx",
+    2,
+    isNumber,
+  );
 
   const [activePalette, setActivePalette] = useState<Palette>(initialPalette);
   const lastPropFingerprintRef = useRef(getPaletteFingerprint(initialPalette));
 
-  const [customInput, setCustomInput] = useState<string>(() => {
-    return localStorage.getItem("palettelab_visualizer_custom_input") || "";
-  });
-
-  const [reelsVarietyIndex, setReelsVarietyIndex] = useState<number>(() => {
-    const saved = localStorage.getItem("palettelab_reels_variety_idx");
-    return saved !== null ? parseInt(saved, 10) : 0;
-  });
-
-  const [dominantRoleIdx, setDominantRoleIdx] = useState<number>(() => {
-    const saved = localStorage.getItem("palettelab_reels_dominant_idx");
-    return saved !== null ? parseInt(saved, 10) : 0;
-  });
-  const [secondaryRoleIdx, setSecondaryRoleIdx] = useState<number>(() => {
-    const saved = localStorage.getItem("palettelab_reels_secondary_idx");
-    return saved !== null ? parseInt(saved, 10) : 1;
-  });
-  const [accentRoleIdx, setAccentRoleIdx] = useState<number>(() => {
-    const saved = localStorage.getItem("palettelab_reels_accent_idx");
-    return saved !== null ? parseInt(saved, 10) : 2;
-  });
-
+  /* Palette coming in from outside resets roles. */
   useEffect(() => {
-    localStorage.setItem("palettelab_visualizer_tab", activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    localStorage.setItem("palettelab_visualizer_custom_input", customInput);
-  }, [customInput]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "palettelab_reels_variety_idx",
-      reelsVarietyIndex.toString(),
-    );
-  }, [reelsVarietyIndex]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "palettelab_reels_dominant_idx",
-      dominantRoleIdx.toString(),
-    );
-  }, [dominantRoleIdx]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "palettelab_reels_secondary_idx",
-      secondaryRoleIdx.toString(),
-    );
-  }, [secondaryRoleIdx]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "palettelab_reels_accent_idx",
-      accentRoleIdx.toString(),
-    );
-  }, [accentRoleIdx]);
-
-  useEffect(() => {
-    const currentFingerprint = getPaletteFingerprint(initialPalette);
-    if (
-      initialPalette &&
-      currentFingerprint !== lastPropFingerprintRef.current
-    ) {
-      lastPropFingerprintRef.current = currentFingerprint;
+    const fp = getPaletteFingerprint(initialPalette);
+    if (initialPalette && fp !== lastPropFingerprintRef.current) {
+      lastPropFingerprintRef.current = fp;
       setActivePalette(initialPalette);
       setDominantRoleIdx(0);
       setSecondaryRoleIdx(Math.min(1, initialPalette.colors.length - 1));
       setAccentRoleIdx(Math.min(2, initialPalette.colors.length - 1));
-      setReelsVarietyIndex(0);
+      setVarietyIdx(0);
       setCustomInput("");
     }
-  }, [initialPalette]);
+  }, [
+    initialPalette,
+    setDominantRoleIdx,
+    setSecondaryRoleIdx,
+    setAccentRoleIdx,
+    setVarietyIdx,
+    setCustomInput,
+  ]);
 
-  const colors = activePalette.colors.map((c) => c.hex);
-  const color1 = colors[0] || "#264653";
-  const color2 = colors[1] || "#2A9D8F";
-  const color3 = colors[2] || "#E9C46A";
-  const color4 = colors[3] || "#F4A261";
-
-  const reelDominantColor = colors[dominantRoleIdx] || color1;
-  const reelSecondaryColor = colors[secondaryRoleIdx] || color2;
-  const reelAccentColor = colors[accentRoleIdx] || color3;
-
-  const supportingIndices = colors
+  /* ── Colors and roles ── */
+  const rawColors = activePalette.colors.map((c) => c.hex);
+  const colors = rawColors.length ? rawColors : ["#264653", "#2A9D8F", "#E9C46A"];
+  const last = colors.length - 1;
+  const dI = Math.min(Math.max(dominantRoleIdx, 0), last);
+  const sI = Math.min(Math.max(secondaryRoleIdx, 0), last);
+  const aI = Math.min(Math.max(accentRoleIdx, 0), last);
+  const bg = colors[dI];
+  const card = colors[sI];
+  const acc = colors[aI];
+  const supporting = colors
     .map((_, i) => i)
-    .filter(
-      (i) =>
-        i !== dominantRoleIdx && i !== secondaryRoleIdx && i !== accentRoleIdx,
-    );
-  const supportingColor1 = colors[supportingIndices[0]] || reelSecondaryColor;
-  const supportingColor2 =
-    colors[supportingIndices[1]] ||
-    colors[supportingIndices[0]] ||
-    reelAccentColor;
+    .filter((i) => i !== dI && i !== sI && i !== aI);
+  const s1 = colors[supporting[0]] ?? card;
+  const s2 = colors[supporting[1]] ?? colors[supporting[0]] ?? acc;
+
+  const textOn = (surface: string): string => {
+    if (textMode === "light") return PAPER;
+    if (textMode === "dark") return INK;
+    const best =
+      contrast(surface, PAPER) >= contrast(surface, INK) ? PAPER : INK;
+    if (textMode === "palette") {
+      let pick = best;
+      let ratio = 0;
+      colors.forEach((c) => {
+        if (c === surface) return;
+        const r = contrast(surface, c);
+        if (r > ratio) {
+          ratio = r;
+          pick = c;
+        }
+      });
+      return ratio >= 4.5 ? pick : best;
+    }
+    return best;
+  };
+  const tBg = textOn(bg);
+  const tCard = textOn(card);
+  const tAcc = textOn(acc);
+  const tS1 = textOn(s1);
+  const tS2 = textOn(s2);
+
+  const permutation = getPermutationForVariety(varietyIdx, colors.length);
+  const isVariety =
+    permutation[0] === dI && permutation[1] === sI && permutation[2] === aI;
+  const roleLabel = isVariety ? `Variety #${varietyIdx + 1}` : "Custom roles";
+
+  const roleTag = (idx: number) => {
+    if (idx === dI) return { name: "Dominant 60%", color: "#1d4ed8" };
+    if (idx === sI) return { name: "Secondary 30%", color: "#4338ca" };
+    if (idx === aI) return { name: "Accent 10%", color: "#b45309" };
+    const n = supporting.indexOf(idx) + 1;
+    return { name: `Supporting ${n}`, color: "#047857" };
+  };
+
+  const roleList = [
+    { name: "Dominant (60%)", hex: bg },
+    { name: "Secondary (30%)", hex: card },
+    { name: "Accent (10%)", hex: acc },
+    ...supporting.map((i, n) => ({ name: `Supporting ${n + 1}`, hex: colors[i] })),
+  ];
+
+  /* ── Stage geometry. Sizes are in % of frame width, like real titles. ── */
+  const { w: W, h: H } = ASPECTS[aspect];
+  const u = Math.min(W, (H * 16) / 9) / 100;
+  const P = (n: number) => `${(n * u).toFixed(2)}px`;
+  const portrait = H > W;
+  const tplMeta = TEMPLATES.find((t) => t.id === template) ?? TEMPLATES[0];
+  const footage = backdrop === "day" || backdrop === "night" || backdrop === "busy";
+
+  /* ── Actions ── */
+  const copyText = async (text: string, message: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      onToast(message);
+    } catch {
+      onToast("Copy was blocked by the browser. Select the text and copy it manually.");
+    }
+  };
+
+  const resetRoles = (len: number) => {
+    setDominantRoleIdx(0);
+    setSecondaryRoleIdx(Math.min(1, len - 1));
+    setAccentRoleIdx(Math.min(2, len - 1));
+    setVarietyIdx(0);
+  };
+
+  const selectVariety = (idx: number) => {
+    setVarietyIdx(idx);
+    const [d, s, a] = getPermutationForVariety(idx, colors.length);
+    setDominantRoleIdx(d);
+    setSecondaryRoleIdx(s);
+    setAccentRoleIdx(a);
+  };
+
+  const applySmartRoles = () => {
+    const [d, s, a] = smartRoles(colors);
+    setDominantRoleIdx(d);
+    setSecondaryRoleIdx(s);
+    setAccentRoleIdx(a);
+    onToast("Roles assigned from each color's brightness and saturation.");
+  };
 
   const extractColors = (input: string): string[] => {
     if (!input) return [];
-
     const found: string[] = [];
 
     const rgbRegex = /rgba?\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/gi;
     let rgbMatch;
     while ((rgbMatch = rgbRegex.exec(input)) !== null) {
-      const r = parseInt(rgbMatch[1], 10);
-      const g = parseInt(rgbMatch[2], 10);
-      const b = parseInt(rgbMatch[3], 10);
-      found.push(rgbToHex(r, g, b));
+      found.push(
+        rgbToHex(
+          parseInt(rgbMatch[1], 10),
+          parseInt(rgbMatch[2], 10),
+          parseInt(rgbMatch[3], 10),
+        ),
+      );
     }
 
     const hexWithHashRegex = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
@@ -395,9 +1010,7 @@ export const PaletteVisualizer: React.FC<PaletteVisualizerProps> = ({
       onToast("Please paste or type HEX color codes (e.g. #264653, #2A9D8F)");
       return;
     }
-
     const hexList = extractColors(inputString);
-
     if (hexList.length === 0) {
       onToast(
         "No valid HEX color codes found in your input. Try e.g. #264653, #2A9D8F",
@@ -405,15 +1018,13 @@ export const PaletteVisualizer: React.FC<PaletteVisualizerProps> = ({
       return;
     }
 
-    let finalHexes: string[] = [];
+    let finalHexes: string[];
     if (hexList.length === 1) {
       finalHexes = generateHarmonicColors(hexList[0], "complementary", 5);
-      onToast(
-        `Applied ${hexList[0]} and generated harmonic visualizer palette!`,
-      );
+      onToast(`Applied ${hexList[0]} and generated a harmonic palette.`);
     } else {
       finalHexes = hexList;
-      onToast(`Applied ${finalHexes.length} colors to visualizer!`);
+      onToast(`Applied ${finalHexes.length} colors to the visualizer.`);
     }
 
     const updatedColors: PaletteColor[] = finalHexes.map((hex) =>
@@ -437,14 +1048,15 @@ export const PaletteVisualizer: React.FC<PaletteVisualizerProps> = ({
     };
 
     setActivePalette(newPalette);
-    localStorage.setItem(
-      "palettelab_visualizer_active_palette",
-      JSON.stringify(newPalette),
-    );
-    setDominantRoleIdx(0);
-    setSecondaryRoleIdx(Math.min(1, updatedColors.length - 1));
-    setAccentRoleIdx(Math.min(2, updatedColors.length - 1));
-    setReelsVarietyIndex(0);
+    try {
+      localStorage.setItem(
+        "palettelab_visualizer_active_palette",
+        JSON.stringify(newPalette),
+      );
+    } catch {
+      /* ignore */
+    }
+    resetRoles(updatedColors.length);
   };
 
   const handlePasteFromClipboard = async () => {
@@ -454,63 +1066,34 @@ export const PaletteVisualizer: React.FC<PaletteVisualizerProps> = ({
         setCustomInput(text.trim());
         parseAndApplyHexes(text.trim());
       } else {
-        onToast("Clipboard is empty. Copy some HEX colors first!");
+        onToast("Clipboard is empty. Copy some HEX colors first.");
       }
     } catch {
-      onToast(
-        "Please paste your colors directly into the input box (Ctrl+V / Cmd+V).",
-      );
+      onToast("Paste your colors into the input box instead (Ctrl+V or Cmd+V).");
     }
   };
 
   const handleResetToOriginal = () => {
     setActivePalette(initialPalette);
     setCustomInput("");
-    setDominantRoleIdx(0);
-    setSecondaryRoleIdx(Math.min(1, initialPalette.colors.length - 1));
-    setAccentRoleIdx(Math.min(2, initialPalette.colors.length - 1));
-    setReelsVarietyIndex(0);
-    localStorage.setItem(
-      "palettelab_visualizer_active_palette",
-      JSON.stringify(initialPalette),
-    );
-    onToast("Reset to original palette.");
-  };
-
-  const handleSelectVariety = (idx: number) => {
-    setReelsVarietyIndex(idx);
-    const [d, s, a] = getPermutationForVariety(idx, colors.length);
-    setDominantRoleIdx(d);
-    setSecondaryRoleIdx(s);
-    setAccentRoleIdx(a);
-    onToast(
-      `Applied Variety #${idx + 1}: Dominant ${colors[d]} · Secondary ${colors[s]} · Accent ${colors[a]}`,
-    );
-  };
-
-  const copyVideoEditingSpec = () => {
-    const spec = `/* Video Reel 60-30-10 Color Scheme (Variety #${reelsVarietyIndex + 1}) */
-60% Dominant (Background & Identity): ${reelDominantColor}
-30% Secondary (Subtitles & Cards):     ${reelSecondaryColor}
-10% Accent (Key Words & Hooks):       ${reelAccentColor}
-Supporting / Additional:              ${colors.filter((_, i) => i !== dominantRoleIdx && i !== secondaryRoleIdx && i !== accentRoleIdx).join(", ") || "None"}`;
-    navigator.clipboard.writeText(spec);
-    onToast(
-      `Copied Variety #${reelsVarietyIndex + 1} 60-30-10 color spec to clipboard!`,
-    );
+    resetRoles(initialPalette.colors.length);
+    try {
+      localStorage.setItem(
+        "palettelab_visualizer_active_palette",
+        JSON.stringify(initialPalette),
+      );
+    } catch {
+      /* ignore */
+    }
+    onToast("Reset to the original palette.");
   };
 
   const handleCreateVideoBrief = async () => {
-    const preview =
-      activeTab === "reels"
-        ? previewRef.current?.querySelector<HTMLElement>(
-            '[data-visualizer-export-column="primary"]',
-          )
-        : previewRef.current;
-    if (!preview || creatingBrief) return;
+    const board = boardRef.current;
+    if (!board || creatingBrief) return;
     setCreatingBrief(true);
     try {
-      const visualizerImage = await captureElementAsJpeg(preview);
+      const visualizerImage = await captureElementAsSvg(board);
       onCreateVideoBrief(activePalette, visualizerImage);
     } catch (error) {
       console.error(
@@ -523,58 +1106,924 @@ Supporting / Additional:              ${colors.filter((_, i) => i !== dominantRo
     }
   };
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 select-none">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-wider mb-1">
-            <Eye className="w-4 h-4" />
-            <span>Interactive Visualizer</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Preview "{activePalette.name}" in Real Designs
-          </h1>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Test how this color scheme performs on Video Reels, web, mobile,
-            SaaS, and graphic media.
-          </p>
-        </div>
+  /* Keyboard: arrows flip varieties, 1-5 switch template, G cycles guides. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && t.closest("input, select, textarea, [contenteditable='true']"))
+        return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        selectVariety((varietyIdx + 1) % 10);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        selectVariety((varietyIdx + 9) % 10);
+      } else if (/^[1-5]$/.test(e.key)) {
+        setTemplate(TEMPLATES[Number(e.key) - 1].id);
+      } else if (e.key.toLowerCase() === "g") {
+        const order: GuideId[] = ["off", "safe", "thirds"];
+        setGuides((g) => order[(order.indexOf(g) + 1) % order.length]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [varietyIdx, colors.length]);
 
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto text-xs font-semibold text-gray-600 no-scrollbar">
+  /* ── Legibility data ── */
+  const legRows: {
+    label: string;
+    fg: string;
+    on: string;
+    kind: "text" | "shape";
+  }[] = [
+    { label: "Text on canvas", fg: tBg, on: bg, kind: "text" },
+    { label: "Text on card", fg: tCard, on: card, kind: "text" },
+    { label: "Text on accent", fg: tAcc, on: acc, kind: "text" },
+    { label: "Accent used as text on canvas", fg: acc, on: bg, kind: "text" },
+    { label: "Accent used as text on card", fg: acc, on: card, kind: "text" },
+    { label: "Card against canvas", fg: card, on: bg, kind: "shape" },
+    { label: "Accent against canvas", fg: acc, on: bg, kind: "shape" },
+  ];
+
+  const collisions: [number, number, number][] = [];
+  if (vision !== "none") {
+    for (let i = 0; i < colors.length; i += 1) {
+      for (let j = i + 1; j < colors.length; j += 1) {
+        const de = deltaE(
+          simulateVision(colors[i], vision),
+          simulateVision(colors[j], vision),
+        );
+        if (de < 12) collisions.push([i, j, de]);
+      }
+    }
+  }
+
+  const notes: string[] = [];
+  if (contrast(card, bg) < 1.5)
+    notes.push("The card barely separates from the canvas. Add a stroke or pick another secondary.");
+  if (contrast(acc, bg) < 3)
+    notes.push("The accent blends into the canvas. It will not pop on hooks and CTAs.");
+  if (contrast(acc, card) < 3)
+    notes.push("The accent is weak on the card. Use it as a highlight pill, not as text color.");
+  if (contrast(acc, bg) >= 4.5 && contrast(acc, card) >= 4.5)
+    notes.push("The accent holds up as text on both canvas and card.");
+  const weighted =
+    0.6 * lumaPrime(bg) + 0.3 * lumaPrime(card) + 0.1 * lumaPrime(acc);
+  const lookLabel =
+    weighted < 0.25 ? "Dark, low-key" : weighted < 0.55 ? "Balanced" : "Bright, high-key";
+
+  /* ── Handoff text ── */
+  const buildHandoff = (fmt: HandoffFormat): string => {
+    const pad = (s: string) => s.padEnd(17);
+    switch (fmt) {
+      case "spec":
+        return [
+          `/* ${activePalette.name}: 60-30-10 video color scheme (${roleLabel}) */`,
+          ...roleList.map((r) => `${pad(r.name)} ${r.hex}`),
+          "",
+          `${pad("Text on canvas")} ${tBg}`,
+          `${pad("Text on card")} ${tCard}`,
+          `${pad("Text on accent")} ${tAcc}`,
+        ].join("\n");
+      case "hex":
+        return roleList.map((r) => `${pad(r.name)} ${r.hex}`).join("\n");
+      case "rgb255":
+        return roleList
+          .map((r) => {
+            const [R, G, B] = hexToRgb(r.hex);
+            return `${pad(r.name)} R ${R}  G ${G}  B ${B}`;
+          })
+          .join("\n");
+      case "rgb01":
+        return roleList
+          .map((r) => {
+            const [R, G, B] = hexToRgb(r.hex);
+            return `${pad(r.name)} ${(R / 255).toFixed(4)}, ${(G / 255).toFixed(4)}, ${(B / 255).toFixed(4)}`;
+          })
+          .join("\n");
+      case "hsl":
+        return roleList
+          .map((r) => {
+            const [h, s, l] = rgbToHsl(hexToRgb(r.hex));
+            return `${pad(r.name)} hsl(${h} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+          })
+          .join("\n");
+      case "css":
+        return [
+          ":root {",
+          `  --pl-dominant: ${bg};`,
+          `  --pl-secondary: ${card};`,
+          `  --pl-accent: ${acc};`,
+          ...supporting.map((i, n) => `  --pl-supporting-${n + 1}: ${colors[i]};`),
+          `  --pl-text-on-dominant: ${tBg};`,
+          `  --pl-text-on-secondary: ${tCard};`,
+          `  --pl-text-on-accent: ${tAcc};`,
+          "}",
+        ].join("\n");
+      case "ass": {
+        const ass = (hex: string) => {
+          const [R, G, B] = hexToRgb(hex);
+          const h = (v: number) => v.toString(16).padStart(2, "0").toUpperCase();
+          return `&H00${h(B)}${h(G)}${h(R)}`;
+        };
+        return [
+          "; Colours in ASS order (&H00BBGGRR)",
+          ...roleList.map((r) => `; ${pad(r.name)} ${ass(r.hex)}`),
+          "",
+          "[V4+ Styles]",
+          "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+          `Style: PL-Caption,Arial,64,${ass(tBg)},&H000000FF,${ass(bg)},&H64000000,-1,0,0,0,100,100,0,0,1,3,1,2,40,40,80,1`,
+          `Style: PL-Highlight,Arial,64,${ass(acc)},&H000000FF,${ass(bg)},&H64000000,-1,0,0,0,100,100,0,0,1,3,1,2,40,40,80,1`,
+        ].join("\n");
+      }
+      case "srt":
+        return [
+          "Most editors and players read these font tags in SRT. Not all do.",
+          "",
+          ...roleList.map(
+            (r) => `<font color="${r.hex}">${r.name}</font>`,
+          ),
+        ].join("\n");
+      case "json":
+        return JSON.stringify(
+          {
+            name: activePalette.name,
+            roles: roleList.map((r) => ({
+              role: r.name,
+              hex: r.hex,
+              rgb: hexToRgb(r.hex),
+            })),
+            textColors: { onDominant: tBg, onSecondary: tCard, onAccent: tAcc },
+            colors,
+          },
+          null,
+          2,
+        );
+    }
+  };
+  const handoffText = buildHandoff(handoffFormat);
+
+  const gplText = [
+    "GIMP Palette",
+    `Name: ${activePalette.name}`,
+    "Columns: 5",
+    "#",
+    ...roleList.map((r) => {
+      const [R, G, B] = hexToRgb(r.hex);
+      return `${String(R).padStart(3)} ${String(G).padStart(3)} ${String(B).padStart(3)} ${r.name}`;
+    }),
+  ].join("\n");
+
+  /* ─────────────────────────────────────────────────────────
+   * Stage pieces
+   * ───────────────────────────────────────────────────────── */
+
+  const pill = (fill: string, size = 2.6): React.CSSProperties => ({
+    background: fill,
+    color: textOn(fill),
+    fontSize: P(size),
+    fontWeight: 800,
+    padding: `${P(size * 0.25)} ${P(size * 0.6)}`,
+    borderRadius: P(size * 0.6),
+    display: "inline-block",
+    lineHeight: 1.2,
+    letterSpacing: "0.01em",
+  });
+
+  const hl = (text: React.ReactNode, size: number) => (
+    <span
+      style={
+        {
+          background: acc,
+          color: tAcc,
+          padding: `0 ${P(size * 0.16)}`,
+          borderRadius: P(size * 0.2),
+          WebkitBoxDecorationBreak: "clone",
+          boxDecorationBreak: "clone",
+        } as React.CSSProperties
+      }
+    >
+      {text}
+    </span>
+  );
+
+  const renderBackdrop = () => {
+    const fill: React.CSSProperties = { position: "absolute", inset: 0 };
+    if (backdrop === "solid") return <div style={{ ...fill, background: bg }} />;
+    if (backdrop === "palette")
+      return (
+        <div
+          style={{
+            ...fill,
+            background: `linear-gradient(155deg, ${bg} 0%, ${bg} 58%, ${mixHex(bg, card, 0.45)} 100%)`,
+          }}
+        />
+      );
+    if (backdrop === "day")
+      return (
+        <div
+          style={{
+            ...fill,
+            background: "linear-gradient(180deg,#6fb7ff 0%,#bfe3ff 55%,#fff0cf 100%)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: "66%",
+              top: "12%",
+              width: P(14),
+              height: P(14),
+              borderRadius: "50%",
+              background: "#fff6c7",
+            }}
+          />
+          <svg
+            viewBox="0 0 100 40"
+            preserveAspectRatio="none"
+            style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: "42%" }}
+          >
+            <path d="M0 40 L0 20 Q16 6 32 18 T64 16 T100 10 L100 40Z" fill="#5f9f6b" />
+            <path d="M0 40 L0 30 Q22 18 44 29 T100 24 L100 40Z" fill="#3f7d4e" />
+          </svg>
+        </div>
+      );
+    if (backdrop === "night")
+      return (
+        <div
+          style={{
+            ...fill,
+            background: "linear-gradient(180deg,#04060f 0%,#10193a 70%,#1d2c5e 100%)",
+          }}
+        >
           {[
-            { id: "reels", label: "Video Reels (60-30-10)", icon: Film },
-            { id: "web", label: "Web Landing", icon: Globe },
-            { id: "mobile", label: "Mobile App", icon: Smartphone },
-            { id: "dashboard", label: "SaaS Dashboard", icon: LayoutDashboard },
-            { id: "branding", label: "Brand Kit", icon: Briefcase },
-            { id: "poster", label: "Poster", icon: Layers },
-            { id: "typography", label: "Typography", icon: FileText },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as VisualizerTab)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? "bg-white text-gray-900 shadow-xs font-bold"
-                    : "hover:text-gray-900"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+            [12, 10],
+            [28, 22],
+            [44, 8],
+            [58, 18],
+            [86, 26],
+            [74, 6],
+          ].map(([x, y]) => (
+            <div
+              key={`${x}-${y}`}
+              style={{
+                position: "absolute",
+                left: `${x}%`,
+                top: `${y}%`,
+                width: P(0.7),
+                height: P(0.7),
+                borderRadius: "50%",
+                background: "#e5e9ff",
+              }}
+            />
+          ))}
+          <div
+            style={{
+              position: "absolute",
+              left: "70%",
+              top: "14%",
+              width: P(9),
+              height: P(9),
+              borderRadius: "50%",
+              background: "#f4f1de",
+            }}
+          />
+          <svg
+            viewBox="0 0 100 40"
+            preserveAspectRatio="none"
+            style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: "40%" }}
+          >
+            <path d="M0 40 L0 18 Q18 4 34 16 T66 14 T100 8 L100 40Z" fill="#0d1430" />
+            <path d="M0 40 L0 30 Q24 20 46 29 T100 24 L100 40Z" fill="#070b1d" />
+          </svg>
+        </div>
+      );
+    return (
+      <div
+        style={{
+          ...fill,
+          background:
+            "repeating-linear-gradient(45deg,#f2f2f2 0 9px,#1f1f1f 9px 18px)",
+        }}
+      />
+    );
+  };
+
+  const renderGuides = () => {
+    if (guides === "off") return null;
+    const base: React.CSSProperties = { position: "absolute", pointerEvents: "none" };
+    if (guides === "thirds") {
+      const line = "1px solid rgba(255,255,255,.75)";
+      const shadow = "0 0 0 1px rgba(0,0,0,.35)";
+      return (
+        <div data-capture-skip style={{ ...base, inset: 0 }}>
+          {[33.333, 66.666].map((p) => (
+            <React.Fragment key={p}>
+              <div style={{ ...base, left: `${p}%`, top: 0, bottom: 0, borderLeft: line, boxShadow: shadow }} />
+              <div style={{ ...base, top: `${p}%`, left: 0, right: 0, borderTop: line, boxShadow: shadow }} />
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+    if (aspect === "9:16") {
+      const zone: React.CSSProperties = {
+        ...base,
+        background: "rgba(239,68,68,.28)",
+        color: "#fff",
+        fontSize: 9,
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      };
+      return (
+        <div data-capture-skip style={{ ...base, inset: 0 }}>
+          <div style={{ ...zone, left: 0, right: 0, top: 0, height: "13%" }}>Top UI</div>
+          <div style={{ ...zone, left: 0, right: 0, bottom: 0, height: "20%" }}>Caption and sound UI</div>
+          <div style={{ ...zone, right: 0, top: "13%", bottom: "20%", width: "15%" }}>Buttons</div>
+        </div>
+      );
+    }
+    const dash = "1.5px dashed rgba(255,255,255,.9)";
+    return (
+      <div data-capture-skip style={{ ...base, inset: 0 }}>
+        <div style={{ ...base, inset: "3.5%", border: dash, boxShadow: "0 0 0 1px rgba(0,0,0,.3)" }} />
+        <div style={{ ...base, inset: "5%", border: "1.5px dashed rgba(250,204,21,.95)" }} />
+        <div style={{ ...base, left: "5.5%", top: "5.5%", fontSize: 9, color: "#fde047", fontWeight: 700 }}>
+          Title safe 90%
+        </div>
+      </div>
+    );
+  };
+
+  /* Reel / short */
+  const renderReel = () => (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: `${P(4.5)} ${P(5)} ${P(5)}`,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: P(2.2) }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={pill(s1, 2.6)}>Reels</span>
+          <span style={{ fontSize: P(2.4), fontFamily: MONO, color: tBg, opacity: 0.7 }}>
+            {roleLabel}
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: P(6.4),
+            fontWeight: 900,
+            lineHeight: 1.08,
+            color: tBg,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Stop picking {hl("random colors", 6.4)} for your reels
         </div>
       </div>
 
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-gray-200 shadow-xs mb-6 space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div
+        style={{
+          alignSelf: "center",
+          textAlign: "center",
+          maxWidth: platformUI ? "76%" : "86%",
+          background: card,
+          color: tCard,
+          padding: `${P(3)} ${P(4.4)}`,
+          borderRadius: P(3),
+          fontSize: P(4.6),
+          fontWeight: 800,
+          lineHeight: 1.25,
+          boxShadow: `0 ${P(1)} ${P(3)} rgba(0,0,0,.25)`,
+        }}
+      >
+        <div style={{ fontSize: P(2), fontWeight: 700, opacity: 0.7, marginBottom: P(0.8) }}>
+          Secondary card, 30%
+        </div>
+        The {hl("60-30-10 rule", 4.6)} keeps every frame on-brand.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: P(1.8), paddingRight: platformUI ? P(14) : 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: P(2) }}>
+          <div
+            style={{
+              width: P(7.5),
+              height: P(7.5),
+              borderRadius: "50%",
+              background: card,
+              color: tCard,
+              fontSize: P(2.8),
+              fontWeight: 800,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            PL
+          </div>
+          <span style={{ fontSize: P(3.2), fontWeight: 800, color: tBg }}>@palettelab.video</span>
+          <span style={pill(acc, 2.8)}>Follow</span>
+        </div>
+        <div style={{ fontSize: P(3), color: tBg, opacity: 0.85, lineHeight: 1.25 }}>
+          Color grade short-form with a palette that survives compression.
+        </div>
+        <div style={{ ...pill(s1, 2.6), display: "inline-flex", alignItems: "center", gap: P(1.2), alignSelf: "flex-start" }}>
+          <Music2 style={{ width: P(2.8), height: P(2.8) }} />
+          <span>Original sound</span>
+        </div>
+        <div style={{ height: P(0.9), borderRadius: P(0.5), background: `${tBg}40`, overflow: "hidden" }}>
+          <div style={{ width: "58%", height: "100%", background: acc }} />
+        </div>
+      </div>
+
+      {platformUI && (
+        <div
+          style={{
+            position: "absolute",
+            right: P(3),
+            bottom: P(24),
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: P(3.4),
+            color: tBg,
+          }}
+        >
+          {[
+            { Ic: Heart, label: "148k" },
+            { Ic: MessageCircle, label: "2.1k" },
+            { Ic: Bookmark, label: "9.4k" },
+            { Ic: Share2, label: "Share" },
+          ].map(({ Ic, label }) => (
+            <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: P(0.6) }}>
+              <div
+                style={{
+                  width: P(9),
+                  height: P(9),
+                  borderRadius: "50%",
+                  background: `${tBg}22`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ic style={{ width: P(4.6), height: P(4.6) }} />
+              </div>
+              <span style={{ fontSize: P(2.1), fontWeight: 700 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  /* YouTube-style thumbnail */
+  const renderThumbnail = () => {
+    const showSubject = W >= H;
+    return (
+      <div style={{ position: "absolute", inset: 0, padding: P(4.5), display: "flex", alignItems: "center" }}>
+        <div style={{ flex: "1 1 0", display: "flex", flexDirection: "column", gap: P(2.2), alignItems: "flex-start", zIndex: 2 }}>
+          <span style={pill(acc, 3)}>New</span>
+          <div
+            style={{
+              fontSize: P(11),
+              fontWeight: 900,
+              lineHeight: 0.98,
+              textTransform: "uppercase",
+              letterSpacing: "-0.03em",
+              color: tBg,
+            }}
+          >
+            Color that
+            <br />
+            {hl("converts", 11)}
+            <br />
+            faster
+          </div>
+          <div style={{ fontSize: P(3.2), fontWeight: 700, color: tBg, opacity: 0.85 }}>
+            I tested the same edit in 5 palettes
+          </div>
+        </div>
+        {showSubject && (
+          <div style={{ flex: "0 0 38%", alignSelf: "stretch", position: "relative" }}>
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                marginLeft: `-${P(16)}`,
+                bottom: `-${P(4.5)}`,
+                width: P(32),
+                height: P(20),
+                borderRadius: "50% 50% 0 0",
+                background: card,
+                border: `${P(0.8)} solid ${acc}`,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                marginLeft: `-${P(7.5)}`,
+                bottom: P(13),
+                width: P(15),
+                height: P(15),
+                borderRadius: "50%",
+                background: s1,
+                border: `${P(0.8)} solid ${acc}`,
+              }}
+            />
+          </div>
+        )}
+        <div
+          style={{
+            position: "absolute",
+            right: P(2),
+            bottom: P(2),
+            background: "#000000",
+            color: "#FFFFFF",
+            fontSize: P(2.6),
+            fontWeight: 700,
+            padding: `${P(0.4)} ${P(1)}`,
+            borderRadius: P(0.6),
+          }}
+        >
+          12:34
+        </div>
+      </div>
+    );
+  };
+
+  /* Interview lower third with ticker */
+  const renderLower = () => {
+    const ltBottom = 10.5 * u + (portrait ? H * 0.14 : 0);
+    return (
+      <div style={{ position: "absolute", inset: 0 }}>
+        <div
+          style={{
+            position: "absolute",
+            left: "66%",
+            bottom: 0,
+            marginLeft: `-${P(20)}`,
+            width: P(40),
+            height: P(26),
+            borderRadius: "50% 50% 0 0",
+            background: "rgba(0,0,0,.35)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: "66%",
+            bottom: P(24),
+            marginLeft: `-${P(8.5)}`,
+            width: P(17),
+            height: P(17),
+            borderRadius: "50%",
+            background: "rgba(0,0,0,.35)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: P(4),
+            right: P(4),
+            width: P(8),
+            height: P(8),
+            borderRadius: P(1.4),
+            background: acc,
+            color: tAcc,
+            fontSize: P(3),
+            fontWeight: 900,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          PL
+        </div>
+
+        <div style={{ position: "absolute", left: P(5), bottom: ltBottom, display: "flex", alignItems: "stretch" }}>
+          <div style={{ width: P(1.4), background: acc }} />
+          <div>
+            <div style={{ background: card, color: tCard, padding: `${P(1.6)} ${P(3.2)}`, fontSize: P(4.4), fontWeight: 800 }}>
+              Evelyn Vance
+            </div>
+            <div style={{ background: s1, color: tS1, padding: `${P(1)} ${P(3.2)}`, fontSize: P(2.6), fontWeight: 600 }}>
+              Principal Design Architect, Studio Corp
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: P(6.5),
+            background: s2,
+            color: tS2,
+            display: "flex",
+            alignItems: "center",
+            gap: P(2),
+            padding: `0 ${P(3)}`,
+            fontSize: P(2.6),
+            fontWeight: 700,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={pill(acc, 2.2)}>Live</span>
+          <span>Palette tests that survive every platform</span>
+        </div>
+      </div>
+    );
+  };
+
+  /* Title card */
+  const renderTitle = () => (
+    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: P(6) }}>
+      <div
+        style={{
+          width: "100%",
+          background: bg,
+          color: tBg,
+          padding: `${P(6)} ${P(7)}`,
+          border: `${P(0.5)} solid ${acc}`,
+          display: "flex",
+          flexDirection: "column",
+          gap: P(2.6),
+          alignItems: "flex-start",
+        }}
+      >
+        <span style={pill(acc, 2.8)}>Episode 04</span>
+        <div style={{ fontSize: P(9), fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em", textTransform: "uppercase" }}>
+          Chromatic spectrum
+        </div>
+        <div style={{ width: P(14), height: P(1), background: acc }} />
+        <div style={{ fontSize: P(3.2), fontWeight: 600, opacity: 0.85 }}>
+          A study in light, contrast, and rhythm
+        </div>
+        <div style={{ display: "flex", gap: P(1.4) }}>
+          {colors.map((c, i) => (
+            <span
+              key={`${c}-${i}`}
+              style={{
+                width: P(3.2),
+                height: P(3.2),
+                borderRadius: "50%",
+                background: c,
+                border: `${P(0.3)} solid ${tBg}55`,
+                display: "inline-block",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* Caption styles */
+  const renderCaptions = () => {
+    const tag = (t: string) => (
+      <span
+        style={{
+          background: "rgba(0,0,0,.6)",
+          color: "#FFFFFF",
+          fontSize: P(2),
+          fontWeight: 700,
+          padding: `${P(0.4)} ${P(1.2)}`,
+          borderRadius: P(1),
+          display: "inline-block",
+        }}
+      >
+        {t}
+      </span>
+    );
+    const words = ["This", "is", "where", "color", "pops"];
+    return (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: P(3),
+          padding: `${P(4)} ${P(5)} ${portrait ? H * 0.2 : 7 * u}px`,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: P(1) }}>
+          {tag("Box")}
+          <div
+            style={{
+              background: card,
+              color: tCard,
+              fontSize: P(4.4),
+              fontWeight: 800,
+              padding: `${P(1.4)} ${P(3)}`,
+              borderRadius: P(1.6),
+            }}
+          >
+            This is where {hl("color", 4.4)} pops
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: P(1) }}>
+          {tag("Sticker")}
+          <div
+            style={
+              {
+                color: acc,
+                fontSize: P(6.4),
+                fontWeight: 900,
+                textTransform: "uppercase",
+                letterSpacing: "-0.01em",
+                WebkitTextStroke: `${P(1.3)} ${tAcc}`,
+                paintOrder: "stroke fill",
+              } as React.CSSProperties
+            }
+          >
+            Look at this
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: P(1) }}>
+          {tag("Karaoke")}
+          <div
+            style={{
+              display: "flex",
+              gap: P(1.2),
+              fontSize: P(5),
+              fontWeight: 900,
+              color: "#FFFFFF",
+              textShadow: `0 ${P(0.3)} ${P(1.2)} rgba(0,0,0,.85)`,
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            {words.map((w, i) =>
+              i === 3 ? (
+                <span key={w} style={{ background: acc, color: tAcc, padding: `0 ${P(1)}`, borderRadius: P(1), textShadow: "none" }}>
+                  {w}
+                </span>
+              ) : (
+                <span key={w}>{w}</span>
+              ),
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTemplate = () => {
+    switch (template) {
+      case "thumbnail":
+        return renderThumbnail();
+      case "lower":
+        return renderLower();
+      case "title":
+        return renderTitle();
+      case "captions":
+        return renderCaptions();
+      default:
+        return renderReel();
+    }
+  };
+
+  const exposureOverlay =
+    exposure < 50
+      ? `rgba(0,0,0,${(((50 - exposure) / 50) * 0.75).toFixed(3)})`
+      : `rgba(255,255,255,${(((exposure - 50) / 50) * 0.7).toFixed(3)})`;
+
+  /* ─────────────────────────────────────────────────────────
+   * Render
+   * ───────────────────────────────────────────────────────── */
+
+  const selectCls =
+    "w-full rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 font-mono text-xs font-semibold text-gray-800 cursor-pointer";
+
+  return (
+    <div className="mx-auto max-w-7xl select-none px-4 py-8 md:px-8">
+      {/* Hidden SVG filters for color-vision simulation */}
+      <svg
+        width="0"
+        height="0"
+        style={{ position: "absolute" }}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          {(["protan", "deutan", "tritan"] as const).map((mode) => {
+            const m = CVD_MATRICES[mode];
+            return (
+              <filter
+                key={mode}
+                id={`plv-${mode}`}
+                colorInterpolationFilters="sRGB"
+              >
+                <feColorMatrix
+                  type="matrix"
+                  values={[
+                    m[0],
+                    m[1],
+                    m[2],
+                    0,
+                    0,
+                    m[3],
+                    m[4],
+                    m[5],
+                    0,
+                    0,
+                    m[6],
+                    m[7],
+                    m[8],
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                  ].join(" ")}
+                />
+              </filter>
+            );
+          })}
+        </defs>
+      </svg>
+
+      {/* Header */}
+      <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-xs font-bold text-indigo-600">
+            <Eye className="h-4 w-4" />
+            <span>Video palette visualizer</span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
+            Test "{activePalette.name}" on real video graphics
+          </h1>
+          <p className="mt-0.5 max-w-2xl text-xs text-gray-500">
+            Check reels, thumbnails, lower thirds, titles, and captions over
+            bright and dark footage. Then check legibility, scopes, and
+            color-vision safety, and copy the values straight into your editor.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {onOpenInContrast && (
+            <button
+              type="button"
+              onClick={() => onOpenInContrast(activePalette)}
+              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+              title="Check color contrast accessibility for this palette"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Check contrast</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              void copyText(
+                colors.join(", "),
+                `Copied ${colors.length} colors: ${colors.join(", ")}`,
+              )
+            }
+            className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 font-bold text-gray-800 transition-colors hover:bg-gray-50"
+            title="Copy all HEX codes"
+          >
+            <Copy className="h-3.5 w-3.5 text-blue-600" />
+            <span>Copy palette</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleCreateVideoBrief()}
+            disabled={creatingBrief}
+            className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 py-1.5 font-bold text-white transition-colors hover:bg-black disabled:cursor-wait disabled:opacity-60"
+            title="Create a video brief from the current preview"
+          >
+            <Video className="h-3.5 w-3.5" />
+            <span>{creatingBrief ? "Capturing…" : "Make video brief"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Palette input */}
+      <div className="mb-5 rounded-3xl border border-gray-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
-              Input or Paste Copied Palette
+            <label className="mb-1 block text-xs font-bold text-gray-800">
+              Paste a palette
             </label>
             <div className="flex gap-2">
               <input
@@ -589,1140 +2038,651 @@ Supporting / Additional:              ${colors.filter((_, i) => i !== dominantRo
                   }
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    parseAndApplyHexes(customInput);
-                  }
+                  if (e.key === "Enter") parseAndApplyHexes(customInput);
                 }}
-                placeholder="Paste HEX code(s) here (e.g. #FF5733 or #264653, #2A9D8F, #E9C46A)..."
-                className="flex-1 font-mono text-xs px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-blue-500 bg-gray-50/50"
+                placeholder="HEX or rgb() values, e.g. #FF5733 or #264653, #2A9D8F, #E9C46A"
+                className="flex-1 rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 font-mono text-xs focus:outline-blue-500"
               />
               <button
+                type="button"
                 onClick={() => parseAndApplyHexes(customInput)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
+                className="shrink-0 cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-blue-700"
               >
-                Apply Palette
+                Apply
               </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0 pt-4 sm:pt-0">
-            <button
-              onClick={handlePasteFromClipboard}
-              className="px-3.5 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Paste directly from clipboard"
-            >
-              <ClipboardPaste className="w-3.5 h-3.5 text-blue-600" />
-              <span>Paste from Clipboard</span>
-            </button>
-
-            <button
-              onClick={handleResetToOriginal}
-              className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
-              title="Reset to default palette"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6 space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-gray-500 font-semibold px-0.5">
-          <span>
-            Active Palette ({colors.length} Colors) · Click any color to copy
-            individual HEX
-          </span>
-          <div className="flex items-center gap-2">
-            {onOpenInContrast && (
-              <button
-                onClick={() => onOpenInContrast(activePalette)}
-                className="self-start sm:self-auto px-3 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                title="Check color contrast accessibility for this palette"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Check Contrast</span>
-              </button>
-            )}
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => void handleCreateVideoBrief()}
-              disabled={creatingBrief}
-              className="self-start sm:self-auto px-3 py-1 bg-white hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-60"
-              title="Create a video brief with the current visualizer preview"
+              onClick={() => void handlePasteFromClipboard()}
+              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              title="Paste directly from clipboard"
             >
-              <Video className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{creatingBrief ? "Capturing…" : "Make Video Brief"}</span>
+              <ClipboardPaste className="h-3.5 w-3.5 text-blue-600" />
+              <span>Paste from clipboard</span>
             </button>
             <button
-              onClick={() => {
-                const hexList = colors.join(", ");
-                navigator.clipboard.writeText(hexList);
-                onToast(
-                  `Copied entire palette (${colors.length} colors): ${hexList}`,
-                );
-              }}
-              className="self-start sm:self-auto px-3 py-1 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-              title="Copy all HEX codes"
+              type="button"
+              onClick={handleResetToOriginal}
+              className="cursor-pointer rounded-xl border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800"
+              title="Reset to the original palette"
+              aria-label="Reset to the original palette"
             >
-              <Copy className="w-3.5 h-3.5 text-blue-600" />
-              <span>Copy Palette</span>
+              <RotateCcw className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
-
-        <div className="flex rounded-xl overflow-hidden h-7 shadow-2xs border border-gray-200">
-          {colors.map((hex, i) => (
-            <div
-              key={i}
-              style={{ backgroundColor: hex }}
-              className="flex-1 h-full cursor-pointer hover:flex-[1.4] transition-all flex items-center justify-center"
-              title={`${hex} - click to copy`}
-              onClick={() => {
-                navigator.clipboard.writeText(hex);
-                onToast(`${hex} copied!`);
-              }}
-            />
-          ))}
-        </div>
       </div>
 
-      <div
-        ref={previewRef}
-        className="bg-white rounded-3xl border border-gray-200 shadow-xl overflow-hidden min-h-[500px]"
-      >
-        {/* REELS TAB */}
-        {activeTab === "reels" && (
-          <div className="p-6 sm:p-10 bg-gray-50/70">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        {/* LEFT: controls + stage */}
+        <div className="min-w-0 space-y-4">
+          <div className="space-y-3 rounded-3xl border border-gray-200 bg-white p-4 shadow-xs">
+            <div className="flex flex-wrap gap-x-5 gap-y-3">
+              <Field label="Graphic">
+                <Segmented
+                  value={template}
+                  options={TEMPLATES}
+                  onChange={setTemplate}
+                />
+              </Field>
+              <Field label="Frame">
+                <Segmented
+                  value={aspect}
+                  options={ASPECT_IDS.map((id) => ({
+                    id,
+                    label: id,
+                    title: ASPECTS[id].hint,
+                  }))}
+                  onChange={setAspect}
+                />
+              </Field>
+            </div>
+            <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+              <Field label="Behind the graphics">
+                <Segmented
+                  value={backdrop}
+                  options={BACKDROPS}
+                  onChange={setBackdrop}
+                />
+              </Field>
+              <Field label="Footage exposure">
+                <div className="flex h-7 items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={exposure}
+                    disabled={!footage}
+                    onChange={(e) => setExposure(Number(e.target.value))}
+                    className="w-32 cursor-pointer accent-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Footage exposure"
+                    title={
+                      footage
+                        ? "Darken or brighten the footage behind your graphics"
+                        : "Pick Day, Night, or Busy to use this"
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setExposure(50)}
+                    disabled={!footage || exposure === 50}
+                    className="cursor-pointer text-[10px] font-semibold text-gray-500 hover:text-gray-900 disabled:cursor-default disabled:opacity-40"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </Field>
+              <Field label="Guides">
+                <Segmented
+                  value={guides}
+                  options={GUIDES}
+                  onChange={setGuides}
+                />
+              </Field>
+              <Field label="Viewer eyes">
+                <Segmented
+                  value={vision}
+                  options={VISIONS}
+                  onChange={setVision}
+                />
+              </Field>
+              {template === "reel" && (
+                <label className="flex h-7 cursor-pointer items-center gap-1.5 self-end text-[11px] font-semibold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={platformUI}
+                    onChange={(e) => setPlatformUI(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-indigo-600"
+                  />
+                  Platform buttons
+                </label>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-3xl border border-gray-200 bg-gray-100 p-4 sm:p-6">
+            <div
+              ref={boardRef}
+              className="mx-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xl"
+              style={{ width: W + 26 }}
+            >
+              <div className="px-1 pb-2 text-[11px] font-extrabold text-gray-900">
+                {tplMeta.label}, {aspect}
+                <span className="font-semibold text-gray-400">
+                  {" "}
+                  · {roleLabel}
+                </span>
+              </div>
+
               <div
-                data-visualizer-export-column="primary"
-                className="lg:col-span-5 flex flex-col items-center"
+                data-cvd-target
+                style={{ filter: visionFilterValue(vision) }}
               >
-                <div
-                  data-visualizer-export-panel="palette"
-                  className="w-full max-w-[330px] mb-3 bg-white px-3 py-2.5 rounded-2xl border border-gray-200/90 shadow-2xs select-none"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-1 text-[11px] font-extrabold text-gray-900">
-                      <Sparkles className="w-3 h-3 text-purple-600" />
-                      <span>Reel Palette &amp; Role Tags</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => {
-                          const hexList = colors.join(", ");
-                          navigator.clipboard.writeText(hexList);
-                          onToast(`Copied palette: ${hexList}`);
+                <div className="mb-1 text-[10px] font-bold text-gray-500">
+                  Palette roles ({colors.length} colors)
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {colors.map((hex, i) => {
+                    const tag = roleTag(i);
+                    return (
+                      <div
+                        key={`${hex}-${i}`}
+                        role="button"
+                        tabIndex={0}
+                        title={`Copy ${hex}`}
+                        onClick={() => void copyText(hex, `${hex} copied`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            void copyText(hex, `${hex} copied`);
+                          }
                         }}
-                        className="text-[9px] font-bold text-gray-600 hover:text-blue-600 flex items-center gap-1 cursor-pointer hover:underline"
-                        title="Copy all palette hex codes"
+                        style={{
+                          flex: "1 1 0",
+                          minWidth: 0,
+                          cursor: "pointer",
+                        }}
                       >
-                        <Copy className="w-2.5 h-2.5 text-blue-600" />
-                        <span>Copy Palette</span>
-                      </button>
-                      <span className="text-[9px] font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded-md">
-                        60–30–10 Rule
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start justify-between gap-1.5 overflow-x-auto no-scrollbar pt-1">
-                    {colors.map((hex, idx) => {
-                      const isDominant = idx === dominantRoleIdx;
-                      const isSecondary = idx === secondaryRoleIdx;
-                      const isAccent = idx === accentRoleIdx;
-
-                      let tagTitle = "Supporting";
-                      let tagSub = "";
-                      let tagBg = "bg-gray-50 text-gray-600 border-gray-200";
-                      let arrowColor = "text-gray-300";
-
-                      if (isDominant) {
-                        tagTitle = "Dominant";
-                        tagSub = "(60%)";
-                        tagBg =
-                          "bg-blue-50 text-blue-800 border-blue-200 font-extrabold";
-                        arrowColor = "text-blue-500";
-                      } else if (isSecondary) {
-                        tagTitle = "Secondary";
-                        tagSub = "(30%)";
-                        tagBg =
-                          "bg-indigo-50 text-indigo-800 border-indigo-200 font-extrabold";
-                        arrowColor = "text-indigo-500";
-                      } else if (isAccent) {
-                        tagTitle = "Accent";
-                        tagSub = "(10%)";
-                        tagBg =
-                          "bg-amber-50 text-amber-900 border-amber-300 font-black";
-                        arrowColor = "text-amber-500";
-                      } else {
-                        const suppPos = supportingIndices.indexOf(idx);
-                        if (suppPos === 0) {
-                          tagTitle =
-                            colors.length > 4 ? "Supporting 1" : "Supporting";
-                          tagSub = "(Details)";
-                          tagBg =
-                            "bg-emerald-50 text-emerald-800 border-emerald-200 font-bold";
-                          arrowColor = "text-emerald-500";
-                        } else if (suppPos === 1) {
-                          tagTitle = "Supporting 2";
-                          tagSub = "(Details)";
-                          tagBg =
-                            "bg-purple-50 text-purple-800 border-purple-200 font-bold";
-                          arrowColor = "text-purple-500";
-                        } else {
-                          tagTitle = `Supporting ${suppPos + 1}`;
-                          tagSub = "(Details)";
-                          tagBg =
-                            "bg-teal-50 text-teal-800 border-teal-200 font-bold";
-                          arrowColor = "text-teal-500";
-                        }
-                      }
-
-                      return (
                         <div
-                          key={idx}
-                          className="flex-1 min-w-[56px] flex flex-col items-center text-center"
+                          style={{
+                            background: hex,
+                            height: 30,
+                            borderRadius: 8,
+                            border: "1px solid rgba(0,0,0,.12)",
+                          }}
+                        />
+                        <div
+                          style={{
+                            fontFamily: MONO,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: "#374151",
+                            marginTop: 4,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
                         >
-                          <span
-                            style={{ backgroundColor: hex }}
-                            className="w-5 h-5 rounded-lg border border-black/10 shadow-2xs cursor-pointer hover:scale-110 transition-transform shrink-0"
-                            title={`Click to copy ${hex}`}
-                            onClick={() => {
-                              navigator.clipboard.writeText(hex);
-                              onToast(`${hex} copied!`);
-                            }}
-                          />
-                          <span className="font-mono text-[9px] font-bold text-gray-700 tracking-tighter truncate max-w-full mt-1">
-                            {hex}
-                          </span>
-                          <svg
-                            className={`w-3.5 h-3 my-0.5 ${arrowColor}`}
-                            viewBox="0 0 14 14"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M 7 1 Q 10 7 7 11" />
-                            <polyline points="4 8 7 11 10 8" />
-                          </svg>
-                          <span
-                            className={`text-[8.5px] px-1 py-0.5 rounded-md border flex flex-col items-center justify-center leading-tight w-full ${tagBg}`}
-                          >
-                            <span>{tagTitle}</span>
-                            {tagSub && (
-                              <span className="opacity-80 text-[7.5px]">
-                                {tagSub}
-                              </span>
-                            )}
-                          </span>
+                          {hex}
                         </div>
-                      );
-                    })}
+                        <div
+                          style={{
+                            fontSize: 8.5,
+                            fontWeight: 700,
+                            color: tag.color,
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {tag.name}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    height: 6,
+                    borderRadius: 3,
+                    overflow: "hidden",
+                    marginTop: 8,
+                  }}
+                >
+                  <div style={{ width: "60%", background: bg }} />
+                  <div style={{ width: "30%", background: card }} />
+                  <div style={{ width: "10%", background: acc }} />
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <div
+                    style={{
+                      position: "relative",
+                      width: W,
+                      height: H,
+                      overflow: "hidden",
+                      borderRadius: 10,
+                      background: bg,
+                    }}
+                  >
+                    {renderBackdrop()}
+                    {footage && exposure !== 50 && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: exposureOverlay,
+                        }}
+                      />
+                    )}
+                    {renderTemplate()}
+                    {renderGuides()}
                   </div>
                 </div>
+              </div>
+            </div>
+            <p className="mt-3 text-center text-[11px] text-gray-500">
+              Arrow keys flip varieties, 1 to 5 switch graphic, G cycles guides.
+              Guides and viewer-eyes filters are never saved into the brief.
+            </p>
+          </div>
+        </div>
 
-                <div
-                  data-visualizer-export-panel="variety"
-                  className="w-full max-w-[330px] mb-3 flex items-center justify-between gap-1 p-1 bg-white rounded-xl border border-gray-200/90 shadow-2xs select-none"
+        {/* RIGHT: inspector */}
+        <aside className="space-y-3 xl:sticky xl:top-4">
+          <div className="grid grid-cols-4 gap-1 rounded-2xl bg-gray-100 p-1">
+            {INSPECTOR_TABS.map((t) => {
+              const Ic = t.icon;
+              const on = t.id === tab;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] transition-colors ${
+                    on
+                      ? "bg-white font-bold text-gray-900 shadow-xs"
+                      : "font-semibold text-gray-500 hover:text-gray-900"
+                  }`}
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                    const idx = num - 1;
-                    const isActive = idx === reelsVarietyIndex;
+                  <Ic className="h-3.5 w-3.5" />
+                  <span>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ROLES */}
+          {tab === "roles" && (
+            <div className="space-y-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs">
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-gray-900">
+                    Role variety
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={applySmartRoles}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                    title="Assign roles from each color's brightness and saturation"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                    Smart roles
+                  </button>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {Array.from({ length: 10 }, (_, idx) => {
+                    const on = isVariety && idx === varietyIdx;
                     return (
                       <button
-                        key={num}
-                        onClick={() => handleSelectVariety(idx)}
+                        key={idx}
+                        type="button"
+                        onClick={() => selectVariety(idx)}
+                        title={`Variety #${idx + 1}`}
                         style={
-                          isActive
-                            ? {
-                                backgroundColor: reelAccentColor,
-                                color: isLightColor(reelAccentColor)
-                                  ? "#111827"
-                                  : "#FFFFFF",
-                              }
-                            : undefined
+                          on ? { backgroundColor: acc, color: tAcc } : undefined
                         }
-                        className={`flex-1 h-7 rounded-lg text-xs font-black flex items-center justify-center transition-all cursor-pointer ${
-                          isActive
-                            ? "shadow-xs scale-105"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                        className={`h-7 cursor-pointer rounded-lg text-xs font-black transition-colors ${
+                          on
+                            ? "shadow-xs"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
                         }`}
-                        title={`Variety #${num}`}
                       >
-                        {num}
+                        {idx + 1}
                       </button>
                     );
                   })}
                 </div>
-
-                <div
-                  data-visualizer-export-panel="phone"
-                  className="w-[310px] sm:w-[330px] h-[620px] rounded-[42px] bg-black p-3 shadow-2xl border-4 border-gray-900 flex flex-col relative select-none"
-                >
-                  <div
-                    style={{ backgroundColor: reelDominantColor }}
-                    className="w-full h-full rounded-[32px] overflow-hidden flex flex-col justify-between p-4 relative transition-colors duration-300"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/75 pointer-events-none" />
-
-                    <div className="absolute left-4 top-3 text-[9px] font-mono font-bold text-white/50 tracking-wider uppercase pointer-events-none z-10">
-                      60% Dominant Canvas
-                    </div>
-
-                    <div className="relative z-10 space-y-4 pt-2">
-                      <div className="flex items-center justify-between text-white/90 text-[11px] font-semibold px-1">
-                        <span
-                          style={{
-                            backgroundColor: `${supportingColor1}E6`,
-                            color: isLightColor(supportingColor1)
-                              ? "#111827"
-                              : "#FFFFFF",
-                          }}
-                          className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-xs border border-white/20"
-                        >
-                          <Film className="w-3 h-3" />
-                          <span>
-                            Reels ·{" "}
-                            {colors.length > 3 ? "Supporting 1" : "60-30-10"}
-                          </span>
-                        </span>
-                        <span className="opacity-80 font-mono text-[10px]">
-                          Variety #{reelsVarietyIndex + 1}/10
-                        </span>
-                      </div>
-
-                      <div className="bg-black/60 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 shadow-lg text-center space-y-1.5">
-                        <div className="flex items-center justify-center">
-                          <span
-                            style={{
-                              backgroundColor: supportingColor2,
-                              color: isLightColor(supportingColor2)
-                                ? "#111827"
-                                : "#FFFFFF",
-                            }}
-                            className="text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md inline-block shadow-2xs"
-                          >
-                            {colors.length > 4
-                              ? "Supporting 2 · Hook Sticker"
-                              : "Viral Hook"}
-                          </span>
-                        </div>
-                        <h3 className="text-sm sm:text-base font-black text-white leading-tight">
-                          Stop picking{" "}
-                          <span
-                            style={{
-                              backgroundColor: reelAccentColor,
-                              color: isLightColor(reelAccentColor)
-                                ? "#111827"
-                                : "#FFFFFF",
-                            }}
-                            className="px-1.5 py-0.5 rounded-md inline-block shadow-xs"
-                          >
-                            RANDOM COLORS
-                          </span>{" "}
-                          for your reels
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="relative z-10 my-auto text-center space-y-2">
-                      <div
-                        style={{
-                          backgroundColor: `${reelSecondaryColor}F2`,
-                          color: isLightColor(reelSecondaryColor)
-                            ? "#111827"
-                            : "#FFFFFF",
-                        }}
-                        className="inline-block px-4 py-2.5 rounded-2xl shadow-xl max-w-[90%] border border-white/10 font-extrabold text-xs sm:text-sm tracking-tight leading-snug"
-                      >
-                        <span className="block text-[8px] uppercase tracking-widest font-black opacity-70 mb-0.5">
-                          30% Secondary Card
-                        </span>
-                        "The{" "}
-                        <span
-                          style={{
-                            color: reelAccentColor,
-                            textDecoration: "underline",
-                            textDecorationColor: reelAccentColor,
-                          }}
-                          className="font-black"
-                        >
-                          60–30–10 rule
-                        </span>{" "}
-                        guarantees maximum brand retention."
-                      </div>
-                      <div className="flex justify-center items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                      </div>
-                    </div>
-
-                    <div className="absolute right-3.5 bottom-24 flex flex-col items-center gap-3 text-white z-10">
-                      <div className="flex flex-col items-center">
-                        <div className="p-2.5 rounded-full bg-black/40 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer">
-                          <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
-                        </div>
-                        <span className="text-[10px] font-bold mt-0.5">
-                          148.2k
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col items-center">
-                        <div className="p-2.5 rounded-full bg-black/40 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer">
-                          <MessageCircle className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-bold mt-0.5">
-                          2,104
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col items-center">
-                        <div className="p-2.5 rounded-full bg-black/40 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer">
-                          <Share2 className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-bold mt-0.5">
-                          Share
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col items-center">
-                        <div
-                          style={{
-                            backgroundColor: `${supportingColor2}E6`,
-                            color: isLightColor(supportingColor2)
-                              ? "#111827"
-                              : "#FFFFFF",
-                          }}
-                          className="p-2.5 rounded-full backdrop-blur-md hover:scale-110 transition-transform cursor-pointer border border-white/20 shadow-xs"
-                          title="Bookmark in Supporting 2 tone"
-                        >
-                          <Bookmark className="w-5 h-5 fill-current" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="relative z-10 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          style={{
-                            backgroundColor: reelSecondaryColor,
-                            color: isLightColor(reelSecondaryColor)
-                              ? "#111827"
-                              : "#FFFFFF",
-                          }}
-                          className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-bold shadow-xs"
-                        >
-                          PL
-                        </div>
-                        <span className="font-extrabold text-xs text-white drop-shadow-xs">
-                          @palettelab.video
-                        </span>
-                        <button
-                          style={{
-                            backgroundColor: reelAccentColor,
-                            color: isLightColor(reelAccentColor)
-                              ? "#111827"
-                              : "#FFFFFF",
-                          }}
-                          className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold shadow-sm hover:opacity-90 transition-opacity"
-                        >
-                          Follow
-                        </button>
-                      </div>
-
-                      <p className="text-[11px] text-white/90 line-clamp-1 leading-tight">
-                        How to color grade short-form videos with 60-30-10 brand
-                        consistency. #editing
-                      </p>
-
-                      <div
-                        style={{
-                          backgroundColor: `${supportingColor1}E6`,
-                          color: isLightColor(supportingColor1)
-                            ? "#111827"
-                            : "#FFFFFF",
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-white/10 shadow-2xs max-w-full"
-                      >
-                        <Music2 className="w-3 h-3 shrink-0 animate-pulse" />
-                        <span className="truncate">
-                          Original Sound · Trending Audio
-                        </span>
-                      </div>
-
-                      <div className="w-full h-1 bg-white/25 rounded-full overflow-hidden mt-1">
-                        <div
-                          style={{ backgroundColor: reelAccentColor }}
-                          className="h-full w-3/5 rounded-full transition-all duration-300"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Right column */}
-              <div className="lg:col-span-7 space-y-6">
-                <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-extrabold text-gray-900">
-                        The 60–30–10 Reel Color Distribution
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        Industry-standard hierarchy for high-retention video
-                        content
-                      </p>
+              <div className="space-y-2.5">
+                {[
+                  {
+                    label: "60% Dominant: backgrounds, plates",
+                    value: dI,
+                    set: setDominantRoleIdx,
+                    hex: bg,
+                  },
+                  {
+                    label: "30% Secondary: cards, caption boxes",
+                    value: sI,
+                    set: setSecondaryRoleIdx,
+                    hex: card,
+                  },
+                  {
+                    label: "10% Accent: hook words, CTAs",
+                    value: aI,
+                    set: setAccentRoleIdx,
+                    hex: acc,
+                  },
+                ].map((row) => (
+                  <div key={row.label}>
+                    <div className="mb-1 text-[11px] font-bold text-gray-700">
+                      {row.label}
                     </div>
-                    <button
-                      onClick={copyVideoEditingSpec}
-                      className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-semibold text-gray-700 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Copy Spec</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="h-10 w-full flex rounded-2xl overflow-hidden border border-gray-200 shadow-2xs">
-                      <div
-                        style={{ backgroundColor: reelDominantColor }}
-                        className="w-[60%] h-full flex items-center justify-center px-2 cursor-pointer transition-colors"
-                        title={`60% Dominant: ${reelDominantColor}`}
-                      >
-                        <span
-                          className={`font-mono text-xs font-extrabold ${
-                            isLightColor(reelDominantColor)
-                              ? "text-gray-900"
-                              : "text-white"
-                          }`}
-                        >
-                          60% Dominant ({reelDominantColor})
-                        </span>
-                      </div>
-
-                      <div
-                        style={{ backgroundColor: reelSecondaryColor }}
-                        className="w-[30%] h-full flex items-center justify-center px-2 cursor-pointer transition-colors"
-                        title={`30% Secondary: ${reelSecondaryColor}`}
-                      >
-                        <span
-                          className={`font-mono text-xs font-extrabold ${
-                            isLightColor(reelSecondaryColor)
-                              ? "text-gray-900"
-                              : "text-white"
-                          }`}
-                        >
-                          30% ({reelSecondaryColor})
-                        </span>
-                      </div>
-
-                      <div
-                        style={{ backgroundColor: reelAccentColor }}
-                        className="w-[10%] h-full flex items-center justify-center px-1 cursor-pointer transition-colors"
-                        title={`10% Accent: ${reelAccentColor}`}
-                      >
-                        <span
-                          className={`font-mono text-[10px] font-extrabold ${
-                            isLightColor(reelAccentColor)
-                              ? "text-gray-900"
-                              : "text-white"
-                          }`}
-                        >
-                          10%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-gray-400 font-semibold px-1">
-                      <span>Background &amp; Brand</span>
-                      <span>Captions &amp; Cards</span>
-                      <span>Hooks &amp; Highlights</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                        60% Dominant
-                      </div>
-                      <div className="text-xs font-bold text-gray-900 mb-2">
-                        Background / Canvas
-                      </div>
-                      <select
-                        value={dominantRoleIdx}
-                        onChange={(e) =>
-                          setDominantRoleIdx(Number(e.target.value))
-                        }
-                        className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-semibold cursor-pointer"
-                      >
-                        {colors.map((c, i) => (
-                          <option key={i} value={i}>
-                            Color {i + 1} ({c})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                        30% Secondary
-                      </div>
-                      <div className="text-xs font-bold text-gray-900 mb-2">
-                        Captions &amp; Subtitles
-                      </div>
-                      <select
-                        value={secondaryRoleIdx}
-                        onChange={(e) =>
-                          setSecondaryRoleIdx(Number(e.target.value))
-                        }
-                        className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-semibold cursor-pointer"
-                      >
-                        {colors.map((c, i) => (
-                          <option key={i} value={i}>
-                            Color {i + 1} ({c})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
-                        10% Accent
-                      </div>
-                      <div className="text-xs font-bold text-gray-900 mb-2">
-                        Hook Words &amp; Highlights
-                      </div>
-                      <select
-                        value={accentRoleIdx}
-                        onChange={(e) =>
-                          setAccentRoleIdx(Number(e.target.value))
-                        }
-                        className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-semibold cursor-pointer"
-                      >
-                        {colors.map((c, i) => (
-                          <option key={i} value={i}>
-                            Color {i + 1} ({c})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-1.5">
-                    <Sliders className="w-4 h-4 text-purple-600" />
-                    <span>Reel Design Rules for Content Creators</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <div className="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-1">
-                      <div className="font-bold text-purple-900">
-                        3–5 Colours per Reel
-                      </div>
-                      <p className="text-purple-800/80 leading-relaxed text-[11px]">
-                        Keep 2–3 dominant colors doing most visual work. Avoid
-                        introducing a new color on every screen cut to maintain
-                        visual professionalism.
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-100 space-y-1">
-                      <div className="font-bold text-amber-900">
-                        Reserve Bright Accent for Emphasis
-                      </div>
-                      <p className="text-amber-800/80 leading-relaxed text-[11px]">
-                        Keep captions in 1 or 2 readable neutral tones,
-                        reserving your 10% brightest accent color exclusively
-                        for key hook words and CTAs.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <span className="text-gray-400 font-medium">
-                      Compatible with CapCut, Premiere Pro, DaVinci Resolve
-                      &amp; FCP
-                    </span>
-                    <button
-                      onClick={copyVideoEditingSpec}
-                      className="px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Hex Codes for Video Editor</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* WEB TAB */}
-        {activeTab === "web" && (
-          <div
-            className="w-full flex flex-col font-sans"
-            style={{ backgroundColor: "#FAFAFA" }}
-          >
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
-              <div className="flex gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              </div>
-              <div className="flex-1 max-w-sm mx-auto bg-white px-3 py-0.5 rounded-md text-[10px] text-gray-400 text-center font-mono">
-                https://yourbrand.io
-              </div>
-            </div>
-
-            <header
-              style={{ backgroundColor: color1 }}
-              className="px-8 py-4 flex items-center justify-between text-white"
-            >
-              <div className="font-extrabold text-lg flex items-center gap-2">
-                <span
-                  style={{ backgroundColor: color2 }}
-                  className="w-3.5 h-3.5 rounded-sm inline-block"
-                />
-                <span className="tracking-tight">PALETTELAB</span>
-              </div>
-              <nav className="flex items-center gap-6 text-xs font-medium opacity-90">
-                <span className="hover:opacity-100 cursor-pointer">
-                  Product
-                </span>
-                <span className="hover:opacity-100 cursor-pointer">
-                  Showcase
-                </span>
-                <span className="hover:opacity-100 cursor-pointer">
-                  Changelog
-                </span>
-                <button
-                  style={{ backgroundColor: color3, color: color1 }}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-transform hover:scale-105"
-                >
-                  Get Started
-                </button>
-              </nav>
-            </header>
-
-            <div className="px-8 py-16 text-center max-w-3xl mx-auto space-y-5">
-              <div
-                style={{ backgroundColor: `${color2}20`, color: color2 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Next-Generation Spatial Design</span>
-              </div>
-
-              <h2
-                style={{ color: color1 }}
-                className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight"
-              >
-                Build intuitive products with harmonious color systems.
-              </h2>
-
-              <p className="text-sm text-gray-600 max-w-xl mx-auto leading-relaxed">
-                Connect your engineering pipeline directly to validated WCAG
-                accessible design tokens. Deploy faster with real brand
-                resonance.
-              </p>
-
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  style={{ backgroundColor: color2 }}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md hover:opacity-90 transition-opacity"
-                >
-                  Explore Showcase
-                </button>
-                <button
-                  style={{ borderColor: color1, color: color1 }}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold border hover:bg-gray-50 transition-colors"
-                >
-                  Documentation
-                </button>
-              </div>
-            </div>
-
-            <div className="px-8 pb-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
-              {[
-                { title: "Color Synchrony", color: color2 },
-                { title: "Design Token Exporter", color: color3 },
-                { title: "Accessibility Audits", color: color4 },
-              ].map((card, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-xs space-y-3"
-                >
-                  <div
-                    style={{
-                      backgroundColor: `${card.color}25`,
-                      color: card.color,
-                    }}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold"
-                  >
-                    0{idx + 1}
-                  </div>
-                  <h4 style={{ color: color1 }} className="font-bold text-sm">
-                    {card.title}
-                  </h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Automatically convert multi-palette specs into CSS
-                    variables, Tailwind tokens, and Figma libraries.
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MOBILE TAB */}
-        {activeTab === "mobile" && (
-          <div className="py-12 flex justify-center bg-gray-50">
-            <div className="w-[320px] h-[640px] bg-slate-900 rounded-[44px] p-3 shadow-2xl border-4 border-slate-800 flex flex-col">
-              <div
-                style={{ backgroundColor: "#FFFFFF" }}
-                className="w-full h-full rounded-[34px] overflow-hidden flex flex-col text-gray-900 relative"
-              >
-                <div className="w-28 h-5 bg-slate-900 rounded-b-xl mx-auto mb-2" />
-
-                <div className="p-4 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div
-                          style={{ backgroundColor: color2 }}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                        >
-                          PL
-                        </div>
-                        <span
-                          style={{ color: color1 }}
-                          className="font-bold text-sm"
-                        >
-                          Workspace
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
                       <span
-                        style={{
-                          backgroundColor: `${color3}30`,
-                          color: color1,
-                        }}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: row.hex }}
+                        className="h-7 w-7 shrink-0 rounded-lg border border-black/10"
+                      />
+                      <select
+                        value={row.value}
+                        onChange={(e) => row.set(Number(e.target.value))}
+                        className={selectCls}
                       >
-                        APP
-                      </span>
-                    </div>
-
-                    <div
-                      style={{ backgroundColor: color1, color: "#FFFFFF" }}
-                      className="p-4 rounded-2xl mb-4 shadow-md"
-                    >
-                      <span className="text-[10px] uppercase tracking-wider opacity-75">
-                        Active Palette Preview
-                      </span>
-                      <h4 className="text-lg font-bold mt-1">
-                        {activePalette.name}
-                      </h4>
-                      <div className="mt-3 flex items-center gap-1.5">
-                        <div
-                          style={{ backgroundColor: color2 }}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white"
-                        >
-                          {colors.length} Tokens
-                        </div>
-                        <div
-                          style={{ backgroundColor: color4 }}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white"
-                        >
-                          WCAG Verified
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                        Color Variations
-                      </div>
-                      {colors.slice(1, 5).map((c, i) => (
-                        <div
-                          key={i}
-                          className="p-2.5 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              style={{ backgroundColor: c }}
-                              className="w-4 h-4 rounded-md shadow-2xs"
-                            />
-                            <span className="text-xs font-bold text-gray-800">
-                              Accent {i + 1}
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono text-gray-400">
-                            {c}
-                          </span>
-                        </div>
-                      ))}
+                        {colors.map((c, i) => (
+                          <option key={i} value={i}>
+                            Color {i + 1} ({c})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <button
-                    style={{ backgroundColor: color2 }}
-                    className="w-full py-3 rounded-xl text-xs font-bold text-white shadow-md"
-                  >
-                    Apply Theme
-                  </button>
+              <div>
+                <div className="mb-1 text-[11px] font-bold text-gray-700">
+                  Text color on graphics
                 </div>
+                <Segmented
+                  value={textMode}
+                  options={TEXT_MODES}
+                  onChange={setTextMode}
+                />
+              </div>
+
+              <div className="rounded-2xl border border-purple-100 bg-purple-50/60 p-3.5 text-[11px] leading-relaxed text-purple-900/90">
+                Keep 3 to 5 colors on screen. Let the dominant color carry the
+                frame, give captions the secondary, and save the accent for the
+                one word you want remembered.
+              </div>
+              <div className="rounded-2xl border border-purple-100 bg-purple-50/60 p-3.5 text-[11px] leading-relaxed text-[#7B3306]">
+                 Keep captions in 1 or 2 readable neutral tones, reserving your 10% brightest accent color exclusively for key hook words and CTAs.
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* DASHBOARD TAB */}
-        {activeTab === "dashboard" && (
-          <div className="p-8 bg-gray-50 space-y-6">
-            <div className="flex items-center justify-between">
+          {/* LEGIBILITY */}
+          {tab === "legibility" && (
+            <div className="space-y-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs">
               <div>
-                <h3 style={{ color: color1 }} className="text-xl font-bold">
-                  Analytics &amp; Usage Overview
+                <h3 className="text-sm font-extrabold text-gray-900">
+                  Will viewers read it?
                 </h3>
-                <p className="text-xs text-gray-500">
-                  Live token telemetry for PaletteLab
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Text needs 4.5:1 for captions. Shapes like cards and buttons
+                  need 3:1.
+                  {vision !== "none" &&
+                    " ΔE shows how different the pair looks in the viewer-eyes mode you picked."}
                 </p>
               </div>
-              <button
-                style={{ backgroundColor: color2 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs"
-              >
-                + Create Report
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                {
-                  title: "Total Palettes",
-                  val: "14,892",
-                  change: "+24.5%",
-                  color: color2,
-                },
-                {
-                  title: "Contrast Score",
-                  val: "99.4%",
-                  change: "+3.1%",
-                  color: color3,
-                },
-                {
-                  title: "Brand Consistency",
-                  val: "98.8%",
-                  change: "+12.0%",
-                  color: color4,
-                },
-              ].map((m, i) => (
-                <div
-                  key={i}
-                  className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs"
-                >
-                  <div className="flex items-center justify-between text-xs text-gray-400 font-medium">
-                    <span>{m.title}</span>
-                    <span
-                      style={{ color: m.color }}
-                      className="font-bold flex items-center gap-0.5"
-                    >
-                      <TrendingUp className="w-3 h-3" />
-                      {m.change}
-                    </span>
-                  </div>
-                  <div
-                    style={{ color: color1 }}
-                    className="text-2xl font-extrabold mt-2"
-                  >
-                    {m.val}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-xs">
-              <div className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">
-                Color Distribution Frequency
-              </div>
-              <div className="h-40 flex items-end gap-3 pt-4 border-b border-gray-100">
-                {[65, 85, 45, 95, 70, 55, 80, 60, 90, 75].map((h, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
-                  >
+              <div className="space-y-2">
+                {legRows.map((row) => {
+                  const ratio = contrast(row.fg, row.on);
+                  const grade =
+                    row.kind === "text" ? textGrade(ratio) : shapeGrade(ratio);
+                  const de =
+                    vision !== "none"
+                      ? deltaE(
+                          simulateVision(row.fg, vision),
+                          simulateVision(row.on, vision),
+                        )
+                      : null;
+                  return (
                     <div
-                      style={{
-                        height: `${h}%`,
-                        backgroundColor: colors[idx % colors.length],
-                      }}
-                      className="w-full rounded-t-lg transition-all hover:opacity-90"
-                    />
-                    <span className="text-[9px] text-gray-400 font-mono">
-                      W{idx + 1}
+                      key={row.label}
+                      className="flex items-center gap-3 rounded-xl border border-gray-100 p-2"
+                    >
+                      <div
+                        style={{ backgroundColor: row.on }}
+                        className="flex h-9 w-12 shrink-0 items-center justify-center rounded-lg border border-black/10"
+                      >
+                        {row.kind === "text" ? (
+                          <span
+                            style={{ color: row.fg }}
+                            className="text-sm font-black"
+                          >
+                            Aa
+                          </span>
+                        ) : (
+                          <span
+                            style={{ backgroundColor: row.fg }}
+                            className="h-4 w-6 rounded"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[11px] font-bold text-gray-800">
+                          {row.label}
+                        </div>
+                        <div className="font-mono text-[10px] text-gray-500">
+                          {ratio.toFixed(2)}:1
+                          {de !== null && ` · ΔE ${de.toFixed(0)}`}
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${grade.cls}`}
+                      >
+                        {grade.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {vision !== "none" && (
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-[11px] text-gray-700">
+                  <div className="mb-1 font-bold text-gray-900">
+                    {VISIONS.find((v) => v.id === vision)?.title}
+                  </div>
+                  {collisions.length === 0 ? (
+                    <span>
+                      No palette colors collapse into each other in this mode.
                     </span>
+                  ) : (
+                    <ul className="space-y-1">
+                      {collisions.slice(0, 5).map(([i, j, de]) => (
+                        <li
+                          key={`${i}-${j}`}
+                          className="flex items-center gap-2"
+                        >
+                          <span
+                            style={{ backgroundColor: colors[i] }}
+                            className="h-3.5 w-3.5 rounded border border-black/10"
+                          />
+                          <span
+                            style={{ backgroundColor: colors[j] }}
+                            className="h-3.5 w-3.5 rounded border border-black/10"
+                          />
+                          <span>
+                            Colors {i + 1} and {j + 1} look nearly the same (ΔE{" "}
+                            {de.toFixed(0)}).
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                {notes.map((n) => (
+                  <div
+                    key={n}
+                    className="rounded-xl bg-amber-50/70 px-3 py-2 text-[11px] leading-relaxed text-amber-900"
+                  >
+                    {n}
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* BRANDING TAB */}
-        {activeTab === "branding" && (
-          <div className="p-12 bg-gray-100 flex flex-wrap items-center justify-center gap-8">
-            <div
-              style={{ backgroundColor: color1, color: "#FFFFFF" }}
-              className="w-80 h-48 rounded-2xl p-6 shadow-2xl flex flex-col justify-between"
-            >
-              <div className="flex justify-between items-start">
-                <span
-                  style={{ backgroundColor: color3 }}
-                  className="w-6 h-6 rounded-lg block shadow-xs"
-                />
-                <span className="text-[10px] font-mono opacity-60">
-                  STUDIO CORP
-                </span>
+          {/* SCOPES */}
+          {tab === "scopes" && (
+            <div className="space-y-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs">
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-900">
+                  Scopes for your palette
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Plotted the way Resolve and Premiere draw them (Rec. 709).
+                  Numbers match the role list.
+                </p>
               </div>
               <div>
-                <h4 className="text-lg font-bold tracking-tight">
-                  Evelyn Vance
-                </h4>
-                <p style={{ color: color2 }} className="text-xs font-medium">
-                  Principal Design Architect
-                </p>
-                <p className="text-[10px] opacity-70 mt-2 font-mono">
-                  evelyn@palettelab.io
-                </p>
-              </div>
-            </div>
-
-            <div
-              style={{ backgroundColor: color2, color: color1 }}
-              className="w-80 h-48 rounded-2xl p-6 shadow-2xl flex items-center justify-center text-center relative overflow-hidden"
-            >
-              <div
-                style={{ backgroundColor: color3 }}
-                className="w-36 h-36 rounded-full absolute -right-10 -bottom-10 opacity-30"
-              />
-              <span className="text-2xl font-extrabold tracking-widest text-white drop-shadow-xs">
-                PALETTELAB
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* POSTER TAB */}
-        {activeTab === "poster" && (
-          <div className="p-12 bg-gray-100 flex justify-center">
-            <div
-              style={{ backgroundColor: color1 }}
-              className="w-[360px] h-[520px] rounded-3xl p-8 shadow-2xl text-white flex flex-col justify-between relative overflow-hidden"
-            >
-              <div
-                style={{ backgroundColor: color2 }}
-                className="w-56 h-56 rounded-full absolute -top-12 -right-12 opacity-80"
-              />
-              <div
-                style={{ backgroundColor: color3 }}
-                className="w-40 h-40 rounded-full absolute bottom-20 -left-12 opacity-70"
-              />
-
-              <div className="relative z-10">
-                <span className="text-[10px] uppercase font-mono tracking-widest opacity-80">
-                  EXHIBITION 2026
-                </span>
-                <h2 className="text-4xl font-black uppercase tracking-tight mt-2 leading-none">
-                  CHROMATIC SPECTRUM
-                </h2>
-              </div>
-
-              <div className="relative z-10 space-y-4">
-                <p className="text-xs opacity-90 leading-relaxed font-medium">
-                  A celebration of light, psychology, and generative digital
-                  geometry.
-                </p>
-                <div className="flex gap-2">
-                  {colors.map((c, i) => (
-                    <span
-                      key={i}
-                      style={{ backgroundColor: c }}
-                      className="w-5 h-5 rounded-full border border-white/20"
-                    />
-                  ))}
+                <div className="mb-1 text-[11px] font-bold text-gray-700">
+                  Vectorscope
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TYPOGRAPHY TAB */}
-        {activeTab === "typography" && (
-          <div className="p-8 sm:p-12 space-y-8 max-w-4xl mx-auto">
-            <div>
-              <span
-                style={{ color: color2 }}
-                className="text-xs font-mono font-bold uppercase tracking-widest"
-              >
-                Display Specimen
-              </span>
-              <h1
-                style={{ color: color1 }}
-                className="text-4xl sm:text-6xl font-extrabold mt-2"
-              >
-                Pure Chromatic Hierarchy.
-              </h1>
-            </div>
-
-            <p
-              style={{ color: color1 }}
-              className="text-lg leading-relaxed font-medium opacity-90"
-            >
-              Good color palettes don’t just decorate: they build reading
-              cadence, draw attention to critical affordances, and reduce
-              cognitive friction.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div
-                style={{ backgroundColor: `${color2}15`, borderColor: color2 }}
-                className="p-5 rounded-2xl border"
-              >
-                <h4
-                  style={{ color: color2 }}
-                  className="font-bold text-sm mb-1"
-                >
-                  Primary Notification
-                </h4>
-                <p className="text-xs text-gray-600">
-                  Subtle tint backgrounds maintain WCAG compliance while
-                  providing delightful feedback.
+                <VectorScope colors={colors} />
+                <p className="mt-1 text-center text-[10px] text-gray-500">
+                  The dashed line is the skin-tone line. Colors sitting on it
+                  can fight with skin in your footage.
                 </p>
               </div>
-
-              <div
-                style={{ backgroundColor: `${color3}20`, borderColor: color3 }}
-                className="p-5 rounded-2xl border"
-              >
-                <h4
-                  style={{ color: color1 }}
-                  className="font-bold text-sm mb-1"
-                >
-                  Secondary Alert
-                </h4>
-                <p className="text-xs text-gray-600">
-                  Contrast ratio verified against both dark and light
-                  surrounding containers.
+              <div>
+                <div className="mb-1 text-[11px] font-bold text-gray-700">
+                  Luma levels
+                </div>
+                <LumaBars colors={colors} />
+                <p className="text-center text-[10px] text-gray-500">
+                  Dashed lines mark legal black (16) and legal white (235).
                 </p>
               </div>
+              <div className="rounded-2xl bg-gray-50 p-3 text-[11px] text-gray-700">
+                Weighted 60-30-10 brightness:{" "}
+                <span className="font-bold">
+                  {Math.round(weighted * 100)} IRE
+                </span>
+                , which reads as <span className="font-bold">{lookLabel}</span>.
+              </div>
+              <div className="space-y-1.5">
+                {colors.map((hex, i) => {
+                  const flags = colorFlags(hex);
+                  return (
+                    <div
+                      key={`${hex}-${i}`}
+                      className="flex items-center gap-2 text-[11px]"
+                    >
+                      <span
+                        style={{ backgroundColor: hex }}
+                        className="h-4 w-4 shrink-0 rounded border border-black/10"
+                      />
+                      <span className="w-4 font-bold text-gray-500">
+                        {i + 1}
+                      </span>
+                      <span className="font-mono text-gray-700">{hex}</span>
+                      {flags.length === 0 ? (
+                        <span className="ml-auto font-semibold text-emerald-700">
+                          Safe
+                        </span>
+                      ) : (
+                        <span className="ml-auto text-right font-semibold text-amber-700">
+                          {flags.join(", ")}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* HANDOFF */}
+          {tab === "handoff" && (
+            <div className="space-y-3 rounded-3xl border border-gray-200 bg-white p-5 shadow-xs">
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-900">
+                  Copy into your editor
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Uses the current roles, so it matches what you see on the
+                  stage.
+                </p>
+              </div>
+              <select
+                value={handoffFormat}
+                onChange={(e) =>
+                  setHandoffFormat(e.target.value as HandoffFormat)
+                }
+                className={selectCls}
+                aria-label="Handoff format"
+              >
+                {HANDOFF_FORMATS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+              <pre className="max-h-72 select-text overflow-auto whitespace-pre rounded-2xl bg-gray-900 p-3.5 font-mono text-[11px] leading-relaxed text-gray-100">
+                {handoffText}
+              </pre>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    void copyText(handoffText, "Copied to clipboard")
+                  }
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-black"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadText(gplText, `${slug(activePalette.name)}.gpl`)
+                  }
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  title="GIMP palette file, also read by Krita and many editors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download .gpl
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadText(
+                      buildHandoff("json"),
+                      `${slug(activePalette.name)}.json`,
+                      "application/json",
+                    )
+                  }
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 px-3.5 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download .json
+                </button>
+              </div>
+              <p className="text-[10px] leading-relaxed text-gray-400">
+                HEX values describe creative direction. They are not a LUT, so
+                confirm your timeline color space and display transform in your
+                editing app.
+              </p>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

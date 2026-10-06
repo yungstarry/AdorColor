@@ -86,6 +86,8 @@ const EXPORT_SCALE = 2;
 const MAX_EXPORT_PIXELS = 36_000_000;
 const MAX_EXPORT_SIDE = 16_000;
 
+const isSvgDataUrl = (source: string) => /^data:image\/svg\+xml/i.test(source);
+
 const getExportSections = (
   brief: VideoColorBrief,
 ): VideoBriefExportSections => ({
@@ -189,7 +191,14 @@ const prepareReferenceImage = async (file: File): Promise<string> => {
   }
 };
 
+/**
+ * Only used for OLD saved briefs whose preview is a tall JPEG from the earlier
+ * layout. New previews are vector SVG snapshots and are returned untouched so
+ * they never get re-rasterized (which is what caused the blur).
+ */
 const normalizeVisualizerPreview = async (source: string): Promise<string> => {
+  if (isSvgDataUrl(source)) return source;
+
   const image = await loadImage(source, "visualizer preview");
   if (image.naturalHeight <= image.naturalWidth) return source;
 
@@ -255,6 +264,7 @@ const createBriefCanvas = async (
     sections.visualizerPreview && brief.visualizerImageDataUrl
       ? await loadImage(
           await normalizeVisualizerPreview(brief.visualizerImageDataUrl),
+          "visualizer preview",
         )
       : null;
   const referenceImage =
@@ -673,8 +683,10 @@ export const VideoBriefStudio: React.FC<VideoBriefStudioProps> = ({
     : undefined;
 
   useEffect(() => {
+    // Vector (SVG) snapshots never need normalizing; only legacy JPEGs do.
     if (
       !brief?.visualizerImageDataUrl ||
+      isSvgDataUrl(brief.visualizerImageDataUrl) ||
       normalizingPreviewId.current === brief.id
     )
       return;
