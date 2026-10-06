@@ -10,13 +10,13 @@ import {
   FileCode,
   FileText,
 } from 'lucide-react';
-import { Palette, PaletteColor } from '../types';
+import { Palette, PaletteColor } from '../../types';
 import { 
   isLightColor, 
   generateCssSnippet, 
   generateTailwindSnippet, 
   generateSvgDataUrl 
-} from '../utils/colorUtils';
+} from '../../utils/colorUtils';
 
 interface PaletteDetailModalProps {
   palette: Palette | null;

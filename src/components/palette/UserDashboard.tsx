@@ -6,7 +6,7 @@ import {
   Layers, 
   Trash2, 
 } from 'lucide-react';
-import { Palette, Collection, Project } from '../types';
+import { Palette, Collection, Project } from '../../types';
 import { PaletteCard } from './PaletteCard';
 
 interface UserDashboardProps {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Folder, Check, Heart } from 'lucide-react';
-import { Palette, Collection } from '../types';
+import { Palette, Collection } from '../../types';
 
 interface SavePaletteModalProps {
   palette: Palette | null;

@@ -1,19 +1,19 @@
 import { Suspense, lazy, useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
-import { SearchTagBar } from './components/SearchTagBar';
-import { FilterPanel } from './components/FilterPanel';
-import { PaletteGrid } from './components/PaletteGrid';
-import { PaletteDetailModal } from './components/PaletteDetailModal';
-import { PaletteGeneratorWorkspace } from './components/PaletteGeneratorWorkspace';
-import { PaletteCompleter } from './components/PaletteCompleter';
-import { ContrastChecker } from './components/ContrastChecker';
-import { ImageColorPicker } from './components/ImageColorPicker';
-import { PaletteVisualizer } from './components/PaletteVisualizer';
-import { UserDashboard } from './components/UserDashboard';
-import { SavePaletteModal } from './components/SavePaletteModal';
+import { SearchTagBar } from './components/palette/SearchTagBar';
+import { FilterPanel } from './components/palette/FilterPanel';
+import { PaletteGrid } from './components/palette/PaletteGrid';
+import { PaletteDetailModal } from './components/palette/PaletteDetailModal';
+import { PaletteGeneratorWorkspace } from './components/palette/PaletteGeneratorWorkspace';
+import { PaletteCompleter } from './components/palette/PaletteCompleter';
+import { ContrastChecker } from './components/palette/ContrastChecker';
+import { ImageColorPicker } from './components/palette/ImageColorPicker';
+import { PaletteVisualizer } from './components/palette/PaletteVisualizer';
+import { UserDashboard } from './components/palette/UserDashboard';
+import { SavePaletteModal } from './components/palette/SavePaletteModal';
 import { Toast } from './components/Toast';
-import { VideoBriefStudio, createVideoColorBrief } from './components/VideoBriefStudio';
-import { ScriptSplitter } from './components/ScriptSplitter';
+import { VideoBriefStudio, createVideoColorBrief } from './components/palette/VideoBriefStudio';
+import { ScriptSplitter } from './components/script/ScriptSplitter';
 import {
   Compass,
   WandSparkles,
@@ -36,7 +36,7 @@ import {
 } from './types';
 
 const FontSelector = lazy(() =>
-  import('./components/FontSelector').then((module) => ({ default: module.FontSelector }))
+  import('./components/font/FontSelector').then((module) => ({ default: module.FontSelector }))
 );
 
 const DEFAULT_FILTER_STATE: FilterState = {

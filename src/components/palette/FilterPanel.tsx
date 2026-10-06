@@ -6,8 +6,8 @@ import {
   Check,
   RotateCcw,
 } from 'lucide-react';
-import { FilterState } from '../types';
-import { hexToRgb } from '../utils/colorUtils';
+import { FilterState } from '../../types';
+import { hexToRgb } from '../../utils/colorUtils';
 
 interface FilterPanelProps {
   filterState: FilterState;

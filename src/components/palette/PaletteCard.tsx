@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, Copy, Check, ExternalLink, Eye, SlidersHorizontal } from 'lucide-react';
-import { Palette, PaletteColor } from '../types';
-import { isLightColor, simulateColorBlindness } from '../utils/colorUtils';
+import { Palette, PaletteColor } from '../../types';
+import { isLightColor, simulateColorBlindness } from '../../utils/colorUtils';
 
 interface PaletteCardProps {
   palette: Palette;

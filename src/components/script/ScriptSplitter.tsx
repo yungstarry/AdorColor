@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, LayoutGrid, List, RotateCcw, Scissors, Sparkles, Timer, WandSparkles } from 'lucide-react';
-import { countScriptWords, splitScript, SplitStyle } from '../utils/scriptSplitter';
+import { countScriptWords, splitScript, SplitStyle } from '../../utils/scriptSplitter';
 
 const SPEED_OPTIONS = [
   { label: 'Slow', value: 2.2 },

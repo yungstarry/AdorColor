@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Menu, X, Plus } from 'lucide-react';
-import { FilterState } from '../types';
+import { FilterState } from '../../types';
 
 interface SearchTagBarProps {
   filterState: FilterState;

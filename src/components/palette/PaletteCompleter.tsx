@@ -12,7 +12,7 @@ import {
   Lock,
   SlidersHorizontal
 } from 'lucide-react';
-import { Palette, PaletteColor } from '../types';
+import { Palette, PaletteColor } from '../../types';
 import { 
   buildPaletteColor, 
   hexToRgb, 
@@ -21,7 +21,7 @@ import {
   hslToRgb, 
   isLightColor, 
   generateSvgDataUrl 
-} from '../utils/colorUtils';
+} from '../../utils/colorUtils';
 
 interface PaletteCompleterProps {
   onOpenInVisualizer: (palette: Palette) => void;

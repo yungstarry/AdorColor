@@ -7,8 +7,8 @@ import {
   Zap,
   Layers,
 } from 'lucide-react';
-import { getContrastRatio } from '../utils/colorUtils';
-import { Palette } from '../types';
+import { getContrastRatio } from '../../utils/colorUtils';
+import { Palette } from '../../types';
 
 interface ContrastCheckerProps {
   initialForeground?: string;

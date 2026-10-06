@@ -15,13 +15,13 @@ import {
   ChevronRight,
   Check
 } from 'lucide-react';
-import { Palette, PaletteColor } from '../types';
+import { Palette, PaletteColor } from '../../types';
 import { 
   buildPaletteColor, 
   getRandomHex, 
   generateHarmonicColors, 
   isLightColor 
-} from '../utils/colorUtils';
+} from '../../utils/colorUtils';
 
 interface PaletteGeneratorWorkspaceProps {
   initialPalette?: Palette | null;

@@ -17,14 +17,14 @@ import {
   Minus,
   Plus,
 } from 'lucide-react';
-import { Palette } from '../types';
+import { Palette } from '../../types';
 import {
   extractColorsFromImage,
   buildPaletteColor,
   isLightColor,
   rgbToHex,
   generateSvgDataUrl,
-} from '../utils/colorUtils';
+} from '../../utils/colorUtils';
 
 interface ImageColorPickerProps {
   onOpenInGenerator: (palette: Palette) => void;

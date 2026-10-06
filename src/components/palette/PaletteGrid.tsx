@@ -1,6 +1,6 @@
 import React from 'react';
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { Palette } from '../types';
+import { Palette } from '../../types';
 import { PaletteCard } from './PaletteCard';
 
 interface PaletteGridProps {
