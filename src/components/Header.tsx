@@ -5,6 +5,7 @@ import {
   Wand2,
   Eye,
   Scissors,
+  Type,
   SlidersHorizontal,
   Image as ImageIcon,
   FolderHeart,
@@ -105,6 +106,16 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           Script Splitter
+        </button>
+        <button
+          onClick={() => setActiveView('font-selector')}
+          className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeView === 'font-selector'
+              ? 'bg-gray-100 text-gray-900 font-semibold'
+              : 'hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          Font Selector
         </button>
       </nav>
 

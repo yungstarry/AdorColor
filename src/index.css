@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+.font-selector-page {
+  background: #080b11 !important;
+  color: #edf2fa !important;
+  min-height: calc(100vh - 60px);
+}
+
+.font-selector-page .font-selector-panel {
+  background-color: #111722 !important;
+  border-color: #30394a !important;
+  color: #edf2fa !important;
+}
+
+.font-selector-page .font-selector-surface {
+  background-color: #0c111a !important;
+  border-color: #30394a !important;
+}
+
+.font-selector-page .text-slate-600 {
+  color: #98a6ba !important;
+}
+
+.font-selector-page .text-slate-500 {
+  color: #aab6c8 !important;
+}
+
+.font-selector-page .text-slate-400 {
+  color: #c0cad8 !important;
+}
+
+.font-selector-page input::placeholder,
+.font-selector-page textarea::placeholder {
+  color: #77859b !important;
+}

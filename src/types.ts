@@ -103,4 +103,4 @@ export interface VideoColorBrief {
   updatedAt: string;
 }
 
-export type ActiveView = 'explore' | 'generator' | 'completer' | 'visualizer' | 'script-splitter' | 'contrast' | 'image-picker' | 'dashboard' | 'video-briefs';
+export type ActiveView = 'explore' | 'generator' | 'completer' | 'visualizer' | 'script-splitter' | 'font-selector' | 'contrast' | 'image-picker' | 'dashboard' | 'video-briefs';

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { Suspense, lazy, useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { SearchTagBar } from './components/SearchTagBar';
 import { FilterPanel } from './components/FilterPanel';
@@ -34,6 +34,10 @@ import {
   Project,
   VideoColorBrief,
 } from './types';
+
+const FontSelector = lazy(() =>
+  import('./components/FontSelector').then((module) => ({ default: module.FontSelector }))
+);
 
 const DEFAULT_FILTER_STATE: FilterState = {
   searchQuery: '',
@@ -609,6 +613,12 @@ export default function App() {
       )}
 
       {activeView === 'script-splitter' && <ScriptSplitter />}
+
+      {activeView === 'font-selector' && (
+        <Suspense fallback={<main className="min-h-[calc(100vh-60px)] bg-[#080b11] p-8 text-sm text-white">Loading Font Selector…</main>}>
+          <FontSelector onToast={showToast} />
+        </Suspense>
+      )}
 
       {activeView === 'contrast' && (
         <ContrastChecker
