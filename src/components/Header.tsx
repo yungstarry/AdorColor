@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Wand2,
   Eye,
+  Scissors,
   SlidersHorizontal,
   Image as ImageIcon,
   FolderHeart,
@@ -94,6 +95,16 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           Visualizer
+        </button>
+        <button
+          onClick={() => setActiveView('script-splitter')}
+          className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeView === 'script-splitter'
+              ? 'bg-gray-100 text-gray-900 font-semibold'
+              : 'hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          Script Splitter
         </button>
       </nav>
 

@@ -13,6 +13,7 @@ import { UserDashboard } from './components/UserDashboard';
 import { SavePaletteModal } from './components/SavePaletteModal';
 import { Toast } from './components/Toast';
 import { VideoBriefStudio, createVideoColorBrief } from './components/VideoBriefStudio';
+import { ScriptSplitter } from './components/ScriptSplitter';
 import {
   Compass,
   WandSparkles,
@@ -606,6 +607,8 @@ export default function App() {
           onToast={showToast}
         />
       )}
+
+      {activeView === 'script-splitter' && <ScriptSplitter />}
 
       {activeView === 'contrast' && (
         <ContrastChecker
