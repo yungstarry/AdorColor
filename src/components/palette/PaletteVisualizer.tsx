@@ -2229,7 +2229,7 @@ export const PaletteVisualizer: React.FC<PaletteVisualizerProps> = ({
                         </div>
                         <div
                           style={{
-                            fontSize: 8.5,
+                            fontSize: 7,
                             fontWeight: 700,
                             color: tag.color,
                             lineHeight: 1.2,
