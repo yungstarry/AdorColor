@@ -38,6 +38,9 @@ import {
 const FontSelector = lazy(() =>
   import('./components/font/FontSelector').then((module) => ({ default: module.FontSelector }))
 );
+const CurveConverter = lazy(() =>
+  import('./components/curve/CurveConverter').then((module) => ({ default: module.CurveConverter }))
+);
 
 const DEFAULT_FILTER_STATE: FilterState = {
   searchQuery: '',
@@ -613,6 +616,12 @@ export default function App() {
       )}
 
       {activeView === 'script-splitter' && <ScriptSplitter />}
+
+      {activeView === 'curve-converter' && (
+        <Suspense fallback={<main className="min-h-[calc(100vh-60px)] bg-[#080b11] p-8 text-sm text-white">Loading Curve Converter…</main>}>
+          <CurveConverter onToast={showToast} />
+        </Suspense>
+      )}
 
       {activeView === 'font-selector' && (
         <Suspense fallback={<main className="min-h-[calc(100vh-60px)] bg-[#080b11] p-8 text-sm text-white">Loading Font Selector…</main>}>

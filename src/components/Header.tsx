@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   Image as ImageIcon,
   FolderHeart,
+  Activity,
 } from 'lucide-react';
 import { ActiveView } from '../types';
 
@@ -116,6 +117,17 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           Font Selector
+        </button>
+        <button
+          onClick={() => setActiveView('curve-converter')}
+          className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+            activeView === 'curve-converter'
+              ? 'bg-gray-100 text-gray-900 font-semibold'
+              : 'hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          Curve Converter
         </button>
       </nav>
 

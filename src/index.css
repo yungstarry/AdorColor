@@ -33,3 +33,1724 @@
 .font-selector-page textarea::placeholder {
   color: #77859b !important;
 }
+
+.curve-converter {
+  background:
+    radial-gradient(ellipse at 9% 0%, rgba(14, 116, 144, 0.13), transparent 34rem),
+    radial-gradient(ellipse at 92% 20%, rgba(109, 40, 217, 0.1), transparent 32rem),
+    #080b11;
+}
+
+.curve-panel {
+  border: 1px solid rgba(51, 65, 85, 0.76);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(17, 24, 39, 0.97), rgba(11, 16, 27, 0.98));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
+}
+
+.curve-card-cyan {
+  background:
+    radial-gradient(ellipse at 55% 52%, rgba(8, 145, 178, 0.055), transparent 53%),
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(11, 16, 27, 0.98));
+}
+
+.curve-card-violet {
+  background:
+    radial-gradient(ellipse at 55% 52%, rgba(124, 58, 237, 0.065), transparent 53%),
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(11, 16, 27, 0.98));
+}
+
+.curve-overline {
+  color: #76849a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.curve-graph {
+  height: auto;
+  margin-top: 12px;
+  overflow: visible;
+}
+
+.curve-grid {
+  fill: none;
+  stroke: rgba(100, 116, 139, 0.17);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.curve-axis {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.36);
+  stroke-width: 1;
+}
+
+.curve-axis-label {
+  fill: #637087;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+}
+
+.curve-line {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px currentColor);
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-line-speed {
+  color: #67e8f9;
+  stroke: #67e8f9;
+}
+
+.curve-line-value {
+  color: #c4b5fd;
+  stroke: #c4b5fd;
+}
+
+.curve-handle-line {
+  fill: none;
+  stroke: rgba(203, 213, 225, 0.6);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.curve-handle-hit {
+  fill: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.curve-handle-hit:active {
+  cursor: grabbing;
+}
+
+.curve-handle {
+  fill: #0b1120;
+  stroke: #e2e8f0;
+  stroke-width: 1.7;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.45));
+}
+
+.curve-anchor {
+  fill: #e2e8f0;
+  stroke: #0b1120;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.curve-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.curve-live-tag span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.curve-live-cyan {
+  color: #67e8f9;
+  background: rgba(8, 145, 178, 0.13);
+}
+
+.curve-live-violet {
+  color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.15);
+}
+
+.curve-input,
+.curve-select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  border: 1px solid rgba(71, 85, 105, 0.72);
+  border-radius: 9px;
+  background: rgba(2, 6, 23, 0.52);
+  padding: 0 11px;
+  color: #e2e8f0;
+  font-size: 12px;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.curve-input:focus,
+.curve-select:focus {
+  border-color: rgba(103, 232, 249, 0.7);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+.curve-unit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #8b9ab0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.curve-unit-suffix {
+  display: grid;
+  min-width: 54px;
+  place-items: center;
+  border: 1px solid rgba(71, 85, 105, 0.7);
+  border-radius: 9px;
+  color: #8b9ab0;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.curve-secondary-button,
+.curve-primary-button,
+.curve-icon-button {
+  display: inline-flex;
+  height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.72);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 0 12px;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  cursor: pointer;
+}
+
+.curve-secondary-button:hover,
+.curve-icon-button:hover {
+  border-color: rgba(148, 163, 184, 0.55);
+  background: rgba(30, 41, 59, 0.9);
+  color: white;
+}
+
+.curve-primary-button {
+  border-color: rgba(34, 211, 238, 0.34);
+  background: linear-gradient(135deg, rgba(8, 145, 178, 0.22), rgba(14, 116, 144, 0.16));
+  color: #a5f3fc;
+}
+
+.curve-primary-button:hover {
+  border-color: rgba(103, 232, 249, 0.62);
+  background: rgba(8, 145, 178, 0.28);
+}
+
+.curve-icon-button {
+  width: 38px;
+  justify-content: center;
+  padding: 0;
+}
+
+.curve-code-box {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.56);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.65);
+  padding: 8px 8px 8px 12px;
+}
+
+.curve-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.48);
+  padding: 0 0 10px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.curve-data-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.curve-data-row strong {
+  color: #dbe5f1;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.curve-export-preview {
+  width: 100%;
+  height: 110px;
+  resize: vertical;
+  border: 1px solid rgba(51, 65, 85, 0.58);
+  border-radius: 9px;
+  background: rgba(2, 6, 23, 0.55);
+  padding: 9px;
+  color: #8290a6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.curve-preview {
+  background:
+    radial-gradient(ellipse at 18% 50%, rgba(34, 211, 238, 0.08), transparent 28%),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(71, 85, 105, 0.08) 40px),
+    rgba(2, 6, 23, 0.35);
+}
+
+.curve-preview-object {
+  position: absolute;
+  background: linear-gradient(145deg, #22d3ee, #0e7490);
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.27);
+  transition: background 180ms ease;
+}
+
+@media (max-width: 767px) {
+  .curve-graph {
+    margin-left: -5px;
+    width: calc(100% + 10px);
+  }
+}
+
+.curve-converter-page {
+  min-height: calc(100vh - 60px);
+  color: #e2e8f0;
+  background:
+    radial-gradient(ellipse at 10% 12%, rgba(14, 116, 144, 0.1), transparent 34rem),
+    radial-gradient(ellipse at 92% 18%, rgba(79, 70, 229, 0.08), transparent 32rem),
+    #080b11;
+}
+
+.curve-craft-header {
+  position: sticky;
+  top: 60px;
+  z-index: 25;
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #1e293b;
+  background: rgba(13, 19, 31, 0.96);
+  padding: 8px 24px;
+  backdrop-filter: blur(14px);
+}
+
+.curve-craft-wordmark {
+  flex: 0 0 auto;
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+
+.curve-craft-wordmark span {
+  margin-left: 9px;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.curve-craft-header nav {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+
+.curve-craft-header nav a {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 550;
+  white-space: nowrap;
+  transition: color 140ms ease;
+}
+
+.curve-craft-header nav a:hover {
+  color: #e2e8f0;
+}
+
+.curve-copy-css {
+  display: inline-flex;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 7px;
+  background: #38bdf8;
+  padding: 0 11px;
+  color: #06121e;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.curve-copy-css:hover {
+  background: #7dd3fc;
+}
+
+.curve-main {
+  max-width: 1660px;
+  margin: 0 auto;
+  padding: 19px 24px 24px;
+}
+
+.curve-page-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+
+.curve-intro-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(56, 189, 248, 0.23);
+  border-radius: 11px;
+  background: rgba(14, 116, 144, 0.13);
+  color: #7dd3fc;
+}
+
+.curve-kicker {
+  margin: 0 0 2px;
+  color: #67e8f9;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.curve-page-intro h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(20px, 2.2vw, 27px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+.curve-page-intro > div:last-child > p:last-child {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.curve-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 305px;
+  align-items: start;
+  gap: 14px;
+}
+
+.curve-workspace-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.curve-graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px;
+  scroll-margin-top: 122px;
+}
+
+.curve-graph-card,
+.curve-preview-card,
+.curve-sidebar {
+  overflow: hidden;
+  border: 1px solid rgba(51, 65, 85, 0.76);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(17, 24, 39, 0.97), rgba(11, 16, 27, 0.98));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
+}
+
+.curve-graph-card {
+  background:
+    radial-gradient(ellipse at 55% 48%, rgba(8, 145, 178, 0.035), transparent 53%),
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(11, 16, 27, 0.98));
+}
+
+.curve-graph-card:nth-child(2) {
+  background:
+    radial-gradient(ellipse at 55% 48%, rgba(16, 185, 129, 0.04), transparent 53%),
+    linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(11, 16, 27, 0.98));
+}
+
+.curve-graph-header,
+.curve-panel-heading {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.63);
+  background: rgba(13, 19, 31, 0.76);
+  padding: 9px 12px;
+}
+
+.curve-graph-header {
+  min-height: 43px;
+}
+
+.curve-graph-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.curve-dot-sky {
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+.curve-dot-emerald {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.curve-graph-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 9px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.curve-graph-option:hover,
+.curve-graph-option.is-on {
+  color: #cbd5e1;
+}
+
+.curve-graph-option input {
+  width: 11px;
+  height: 11px;
+  accent-color: #34d399;
+}
+
+.curve-graph-stage {
+  position: relative;
+}
+
+.curve-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 680 / 360;
+  overflow: visible;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.curve-grid {
+  fill: none;
+  stroke: rgba(100, 116, 139, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-axis {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.48);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-guide {
+  fill: none;
+  stroke: rgba(56, 189, 248, 0.21);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-zero-line {
+  fill: none;
+  stroke: rgba(52, 211, 153, 0.45);
+  stroke-width: 1.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-tick {
+  fill: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+}
+
+.curve-value-line,
+.curve-speed-line {
+  fill: none;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-value-line {
+  stroke: url(#curve-value-gradient);
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.55));
+}
+
+.curve-speed-line {
+  stroke: #34d399;
+  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.42));
+}
+
+.curve-speed-area {
+  fill: rgba(16, 185, 129, 0.11);
+  stroke: none;
+}
+
+.curve-value-handle-line,
+.curve-speed-handle-line {
+  fill: none;
+  stroke: rgba(125, 211, 252, 0.7);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-speed-handle-line {
+  stroke: rgba(52, 211, 153, 0.7);
+}
+
+.curve-handle-halo {
+  fill: rgba(56, 189, 248, 0.08);
+  stroke: rgba(56, 189, 248, 0.2);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-handle-dot,
+.curve-speed-handle,
+.curve-anchor-start,
+.curve-anchor-end {
+  stroke: #f8fafc;
+  stroke-width: 1.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-handle-sky {
+  fill: #0284c7;
+}
+
+.curve-handle-indigo {
+  fill: #6366f1;
+}
+
+.curve-speed-handle {
+  fill: #064e3b;
+}
+
+.curve-speed-handle-start {
+  fill: #047857;
+}
+
+.curve-speed-handle-end {
+  fill: #0e7490;
+}
+
+.curve-speed-hit-area {
+  fill: transparent;
+  cursor: grab;
+}
+
+.curve-speed-hit-area:hover,
+.curve-speed-hit-area:active {
+  fill: rgba(52, 211, 153, 0.1);
+}
+
+.curve-speed-hit-area:active {
+  cursor: grabbing;
+}
+
+.curve-speed-handle-halo {
+  fill: rgba(52, 211, 153, 0.18);
+  stroke: rgba(110, 231, 183, 0.55);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-speed-handle-label-bg {
+  fill: rgba(6, 20, 19, 0.96);
+  stroke: rgba(52, 211, 153, 0.55);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-speed-handle-offset {
+  fill: none;
+  stroke: rgba(167, 243, 208, 0.8);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-speed-handle-label {
+  fill: #d1fae5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 650;
+  paint-order: stroke;
+  stroke: #0b1120;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.curve-anchor-start {
+  fill: #0f172a;
+  stroke: #38bdf8;
+}
+
+.curve-anchor-end {
+  fill: #0f172a;
+  stroke: #818cf8;
+}
+
+.curve-handle-cross {
+  fill: none;
+  stroke: #ecfdf5;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-point-label {
+  fill: #cbd5e1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  paint-order: stroke;
+  stroke: #0b1120;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.curve-playhead-line,
+.curve-reticle {
+  fill: none;
+  stroke: rgba(244, 63, 94, 0.67);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-reticle {
+  stroke: rgba(56, 189, 248, 0.45);
+}
+
+.curve-playhead-dot {
+  fill: #f43f5e;
+  stroke: white;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-reticle-badge {
+  fill: rgba(15, 23, 42, 0.94);
+  stroke: rgba(56, 189, 248, 0.55);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-reticle-text {
+  fill: #7dd3fc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+}
+
+.curve-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 13px;
+  pointer-events: none;
+  margin: 0 9px 9px;
+  border: 1px solid rgba(51, 65, 85, 0.62);
+  border-radius: 5px;
+  background: rgba(2, 6, 23, 0.78);
+  padding: 5px 7px;
+  color: #a7b3c5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+  backdrop-filter: blur(6px);
+}
+
+.curve-graph-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.curve-graph-legend i {
+  width: 8px;
+  height: 2px;
+}
+
+.curve-sidebar {
+  position: sticky;
+  top: 122px;
+  display: flex;
+  max-height: calc(100vh - 135px);
+  flex-direction: column;
+  gap: 13px;
+  overflow-y: auto;
+  padding: 13px;
+  scrollbar-color: #334155 transparent;
+  scrollbar-width: thin;
+}
+
+.curve-sidebar-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 10px;
+}
+
+.curve-sidebar-title h2 {
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.curve-small-icon,
+.curve-playback-icon {
+  display: inline-grid;
+  width: 28px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #94a3b8;
+  transition: color 120ms ease, background 120ms ease;
+  cursor: pointer;
+}
+
+.curve-small-icon:hover,
+.curve-playback-icon:hover {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.curve-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.curve-sidebar-section + .curve-sidebar-section {
+  border-top: 1px solid #1e293b;
+  padding-top: 12px;
+}
+
+.curve-sidebar-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #aab6c8;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.curve-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 550;
+}
+
+.curve-field input,
+.curve-field select {
+  width: 100%;
+  min-width: 0;
+  height: 31px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  border-radius: 6px;
+  background: #0a0e17;
+  padding: 0 8px;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  outline: none;
+  color-scheme: dark;
+}
+
+.curve-field input:focus,
+.curve-field select:focus {
+  border-color: #0ea5e9;
+}
+
+.curve-frame-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.64);
+  padding: 7px 8px;
+  color: #94a3b8;
+  font-size: 9px;
+}
+
+.curve-frame-count strong {
+  color: #cbd5e1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 550;
+}
+
+.curve-velocity-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 7px;
+  background: rgba(10, 14, 23, 0.82);
+  padding: 8px;
+}
+
+.curve-velocity-card h4 {
+  color: #7dd3fc;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.curve-search {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  background: #0a0e17;
+  padding: 0 8px;
+}
+
+.curve-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 10px;
+  outline: none;
+}
+
+.curve-search input::placeholder {
+  color: #64748b;
+}
+
+.curve-category-list {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 1px 0 4px;
+  scrollbar-width: none;
+}
+
+.curve-category-list::-webkit-scrollbar {
+  display: none;
+}
+
+.curve-category-list button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(51, 65, 85, 0.62);
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 3px 6px;
+  color: #94a3b8;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.curve-category-list button.active {
+  border-color: rgba(14, 165, 233, 0.55);
+  background: rgba(14, 165, 233, 0.13);
+  color: #7dd3fc;
+}
+
+.curve-preset-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  border: 1px solid #1e293b;
+  border-radius: 7px;
+  background: #0a0e17;
+  padding: 3px;
+}
+
+.curve-preset-tabs button {
+  display: flex;
+  min-width: 0;
+  height: 27px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #8d99a9;
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.curve-preset-tabs button:hover {
+  color: #e2e8f0;
+}
+
+.curve-preset-tabs button.active {
+  border-color: rgba(163, 230, 53, 0.65);
+  background: #a3e635;
+  color: #17210a;
+}
+
+.curve-preset-tabs button span {
+  opacity: 0.72;
+  font-size: 8px;
+}
+
+.curve-preset-preview-toggle {
+  display: flex;
+  min-height: 27px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #8290a2;
+  font-size: 9px;
+}
+
+.curve-preset-preview-toggle > div {
+  display: inline-flex;
+  gap: 3px;
+  border: 1px solid #263244;
+  border-radius: 6px;
+  background: #0a0e17;
+  padding: 2px;
+}
+
+.curve-preset-preview-toggle button {
+  min-width: 48px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #8d99a9;
+  font-size: 8px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.curve-preset-preview-toggle button:hover {
+  color: #e2e8f0;
+}
+
+.curve-preset-preview-toggle button.active {
+  border-color: rgba(52, 211, 153, 0.38);
+  background: rgba(16, 185, 129, 0.17);
+  color: #6ee7b7;
+}
+
+.curve-preset-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #8290a2;
+  font-size: 9px;
+}
+
+.curve-preset-filter select {
+  min-width: 0;
+  height: 26px;
+  flex: 1;
+  border: 1px solid #263244;
+  border-radius: 5px;
+  background: #0a0e17;
+  padding: 0 7px;
+  color: #cbd5e1;
+  font-size: 9px;
+  color-scheme: dark;
+}
+
+.curve-preset-list {
+  display: grid;
+  max-height: 360px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 1px 2px 3px 1px;
+  scrollbar-color: #334155 transparent;
+  scrollbar-width: thin;
+}
+
+.curve-preset-card {
+  position: relative;
+  min-width: 0;
+  min-height: 78px;
+  overflow: hidden;
+  border: 1px solid rgba(51, 65, 85, 0.68);
+  border-radius: 10px;
+  background: #171d28;
+  transition: border-color 130ms ease, background 130ms ease, transform 130ms ease;
+}
+
+.curve-preset-card:hover {
+  transform: translateY(-1px);
+  border-color: #475569;
+  background: #1d2632;
+}
+
+.curve-preset-card.active {
+  border-color: #a3e635;
+  background: rgba(163, 230, 53, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(163, 230, 53, 0.08);
+}
+
+.curve-preset-apply {
+  display: flex;
+  width: 100%;
+  min-height: 76px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  padding: 8px 8px 7px;
+  color: #b6bec9;
+  text-align: center;
+  cursor: pointer;
+}
+
+.curve-preset-apply:hover,
+.curve-preset-card.active .curve-preset-apply {
+  color: #f1f5f9;
+}
+
+.curve-preset-preview {
+  display: block;
+  width: 100%;
+  height: 37px;
+  overflow: visible;
+}
+
+.curve-preset-baseline {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.15);
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve-preset-shape {
+  fill: none;
+  stroke: #22e66b;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 1.5px rgba(34, 230, 107, 0.24));
+}
+
+.curve-preset-shape.is-active {
+  stroke: #f8fafc;
+  stroke-width: 1.45;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.24));
+}
+
+.curve-preset-name {
+  display: block;
+  overflow: hidden;
+  padding: 0 9px;
+  font-size: 9px;
+  font-weight: 620;
+  line-height: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.curve-preset-check {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  color: #d9f99d;
+}
+
+.curve-preset-save {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: rgba(8, 12, 18, 0.68);
+  color: #8591a0;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.curve-preset-card:hover .curve-preset-save,
+.curve-preset-save:focus-visible,
+.curve-preset-save.is-saved {
+  opacity: 1;
+}
+
+.curve-preset-save:hover,
+.curve-preset-save.is-saved {
+  background: rgba(163, 230, 53, 0.16);
+  color: #bef264;
+}
+
+.curve-preset-empty {
+  grid-column: 1 / -1;
+  padding: 20px 10px;
+  color: #8491a2;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.curve-transform-button {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.curve-transform-button:hover {
+  background: #1e293b;
+}
+
+.curve-preview-card {
+  scroll-margin-top: 122px;
+}
+
+.curve-panel-heading h2 {
+  color: #f1f5f9;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.curve-record-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+}
+
+.curve-preview-tabs,
+.curve-playback-rates {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  background: #0a0e17;
+  padding: 2px;
+}
+
+.curve-preview-tabs button,
+.curve-playback-rates button {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  padding: 4px 7px;
+  color: #94a3b8;
+  font-size: 9px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.curve-preview-tabs button.active {
+  border-color: rgba(14, 165, 233, 0.35);
+  background: rgba(14, 165, 233, 0.16);
+  color: #7dd3fc;
+}
+
+.curve-motion-stage {
+  position: relative;
+  display: grid;
+  min-height: 192px;
+  place-items: center;
+  overflow: hidden;
+  background-color: #0a0e17;
+  background-image: radial-gradient(rgba(56, 189, 248, 0.22) 1px, transparent 1px);
+  background-position: center;
+  background-size: 24px 24px;
+  padding: 28px 30px 16px;
+}
+
+.curve-live-readout,
+.curve-speedometer {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.84);
+  padding: 5px 8px;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+  backdrop-filter: blur(6px);
+}
+
+.curve-live-readout {
+  top: 10px;
+  left: 11px;
+}
+
+.curve-live-readout strong {
+  color: #7dd3fc;
+  font-weight: 650;
+}
+
+.curve-live-readout span:nth-of-type(2) strong {
+  color: #34d399;
+}
+
+.curve-live-readout span:nth-of-type(3) strong {
+  color: #fb7185;
+}
+
+.curve-live-readout i {
+  color: #64748b;
+  font-style: normal;
+}
+
+.curve-speedometer {
+  top: 10px;
+  right: 11px;
+}
+
+.curve-speedometer > i {
+  width: 55px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #1e293b;
+}
+
+.curve-speedometer b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #facc15, #f43f5e);
+}
+
+.curve-motion-track {
+  position: relative;
+  width: min(100%, 620px);
+  height: 66px;
+  border: 1px solid #1e293b;
+  border-radius: 11px;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.curve-track-start,
+.curve-track-end {
+  position: absolute;
+  top: 5px;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+}
+
+.curve-track-start {
+  left: 8px;
+}
+
+.curve-track-end {
+  right: 8px;
+}
+
+.curve-track-line {
+  position: absolute;
+  top: 38px;
+  right: 28px;
+  left: 28px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #1e293b;
+}
+
+.curve-track-line i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #6366f1);
+}
+
+.curve-track-object {
+  position: absolute;
+  top: 15px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.23);
+  border-radius: 9px;
+  background: linear-gradient(145deg, #38bdf8, #4f46e5);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.42);
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.curve-preview-shape,
+.curve-rotation-ring {
+  position: relative;
+  display: grid;
+  width: 120px;
+  height: 120px;
+  place-items: center;
+}
+
+.curve-scale-guide {
+  position: absolute;
+  width: 104px;
+  height: 104px;
+  border: 1px dashed #334155;
+  border-radius: 17px;
+}
+
+.curve-scale-object {
+  position: relative;
+  display: grid;
+  width: 88px;
+  height: 88px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.curve-rotation-ring {
+  border: 1px solid #1e293b;
+  border-radius: 50%;
+}
+
+.curve-rotation-object {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: start center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #6366f1, #ec4899);
+  padding-top: 10px;
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.3);
+}
+
+.curve-rotation-object i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: white;
+}
+
+.curve-bounce-stage {
+  display: flex;
+  width: min(100%, 300px);
+  height: 145px;
+  align-items: end;
+  justify-content: center;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 5px;
+}
+
+.curve-bounce-object {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #34d399, #0284c7);
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.25);
+  color: #052e2b;
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.curve-opacity-object {
+  border: 1px solid rgba(56, 189, 248, 0.36);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.3), rgba(99, 102, 241, 0.3));
+  padding: 18px 26px;
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.curve-playback-controls {
+  border-top: 1px solid rgba(51, 65, 85, 0.75);
+  background: rgba(13, 19, 31, 0.74);
+  padding: 10px 12px;
+}
+
+.curve-timeline {
+  width: 100%;
+  height: 5px;
+  margin: 0 0 9px;
+  appearance: none;
+  border-radius: 9px;
+  background: #1e293b;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.curve-timeline::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  appearance: none;
+  border: 2px solid #0f172a;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 0 1px #7dd3fc;
+}
+
+.curve-play-button {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 5px;
+  background: #0ea5e9;
+  padding: 0 10px;
+  color: #06121e;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.curve-play-button:hover {
+  background: #38bdf8;
+}
+
+.curve-playback-icon.active {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+}
+
+.curve-playback-rates button {
+  padding: 3px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+}
+
+.curve-playback-rates button.active {
+  background: #0ea5e9;
+  color: #07121e;
+  font-weight: 750;
+}
+
+.curve-page-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+  border-top: 1px solid rgba(30, 41, 59, 0.75);
+  padding-top: 11px;
+  color: #64748b;
+  font-size: 9px;
+}
+
+.curve-page-footer > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.curve-page-footer i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+}
+
+@media (max-width: 1180px) {
+  .curve-workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .curve-graphs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .curve-sidebar {
+    top: 116px;
+  }
+}
+
+@media (max-width: 900px) {
+  .curve-craft-header {
+    top: 60px;
+  }
+
+  .curve-craft-header nav {
+    gap: 12px;
+  }
+
+  .curve-craft-header nav a:nth-child(2) {
+    display: none;
+  }
+
+  .curve-workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .curve-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .curve-preset-list {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .curve-craft-header {
+    min-height: 48px;
+    gap: 8px;
+    padding: 7px 12px;
+  }
+
+  .curve-craft-wordmark {
+    font-size: 13px;
+  }
+
+  .curve-craft-wordmark span {
+    display: none;
+  }
+
+  .curve-craft-header nav {
+    display: none;
+  }
+
+  .curve-main {
+    padding: 15px 10px 18px;
+  }
+
+  .curve-graphs-grid {
+    gap: 10px;
+  }
+
+  .curve-graph-header {
+    align-items: flex-start;
+  }
+
+  .curve-graph-header .curve-graph-option span {
+    display: none;
+  }
+
+  .curve-graph-header h2 {
+    font-size: 11px;
+  }
+
+  .curve-tick {
+    font-size: 8px;
+  }
+
+  .curve-graph-legend {
+    gap: 4px 9px;
+    font-size: 7px;
+  }
+
+  .curve-panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .curve-preview-tabs {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .curve-preview-tabs button {
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .curve-motion-stage {
+    min-height: 180px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .curve-live-readout {
+    right: 8px;
+    left: 8px;
+    justify-content: space-between;
+    gap: 3px;
+    padding: 5px;
+    font-size: 7px;
+  }
+
+  .curve-speedometer {
+    display: none;
+  }
+
+}
