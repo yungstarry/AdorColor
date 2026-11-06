@@ -160,6 +160,7 @@ export function CurveConverter({ onToast }: CurveConverterProps) {
             onSettingsChange={setSettings}
             activePreset={activePreset}
             onPresetChange={setActivePreset}
+            onToast={onToast}
           />
         </div>
         <footer className="curve-page-footer">

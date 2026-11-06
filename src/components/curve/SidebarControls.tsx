@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRightLeft, Check, FlipHorizontal, FlipVertical, RotateCcw, Search, Sliders, Sparkles, Star,
+  ArrowRightLeft, Check, ClipboardCopy, Download, FlipHorizontal, FlipVertical, RotateCcw, Search, Sliders, Sparkles, Star,
 } from 'lucide-react';
 import { ALL_EASING_PRESETS, EASING_CATEGORIES } from './utils/presets';
-import { aEVelocityToBezier, bezierToAEVelocity, evaluateBezier } from './utils/bezierMath';
+import {
+  aEVelocityToBezier,
+  bezierToAEVelocity,
+  evaluateBezier,
+  generateExportCode,
+  sampleAnimationCurve,
+} from './utils/bezierMath';
 import type { AnimationSettings, BezierPoints, EasingPreset } from './types';
 
 const SAVED_PRESETS_KEY = 'palettelab_curve_saved_presets';
@@ -89,6 +95,7 @@ interface SidebarControlsProps {
   onSettingsChange: (settings: AnimationSettings) => void;
   activePreset: string;
   onPresetChange: (name: string) => void;
+  onToast: (message: string) => void;
 }
 
 export function SidebarControls({
@@ -98,22 +105,36 @@ export function SidebarControls({
   onSettingsChange,
   activePreset,
   onPresetChange,
+  onToast,
 }: SidebarControlsProps) {
+  const [sidebarTab, setSidebarTab] = useState<'parameters' | 'inputs'>('parameters');
+  const [inputTarget, setInputTarget] = useState<'after-effects' | 'resolve'>('after-effects');
+  const [inputFormat, setInputFormat] = useState<'ae' | 'csv' | 'json'>('ae');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [presetTab, setPresetTab] = useState<'default' | 'saved'>('default');
   const [savedPresetNames, setSavedPresetNames] = useState<string[]>(readSavedPresetNames);
   const [presetPreviewMode, setPresetPreviewMode] = useState<PresetPreviewMode>(readPresetPreviewMode);
   const velocity = useMemo(() => bezierToAEVelocity(bezier, settings), [bezier, settings]);
+  const sampleCount = Math.max(2, Math.round(settings.duration * settings.fps) + 1);
+  const curveSamples = useMemo(
+    () => sampleAnimationCurve(bezier, settings, sampleCount).samples,
+    [bezier, settings, sampleCount],
+  );
+  const inputExport = useMemo(
+    () => generateExportCode(inputFormat, bezier, settings, curveSamples),
+    [inputFormat, bezier, settings, curveSamples],
+  );
   const hasDisplacement = Math.abs(settings.endValue - settings.startValue) >= 1e-8;
   const filteredPresets = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
     return ALL_EASING_PRESETS.filter((item) =>
       (presetTab === 'default' || savedPresetNames.includes(item.name))
       && (selectedCategory === 'All' || item.category === selectedCategory)
+      && (!item.previewMode || item.previewMode === 'both' || item.previewMode === presetPreviewMode)
       && (!query || `${item.name} ${item.category} ${item.description}`.toLocaleLowerCase().includes(query)))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  }, [presetTab, savedPresetNames, selectedCategory, searchQuery]);
+  }, [presetTab, savedPresetNames, selectedCategory, searchQuery, presetPreviewMode]);
 
   useEffect(() => {
     try {
@@ -169,13 +190,101 @@ export function SidebarControls({
       saved.includes(name) ? saved.filter((savedName) => savedName !== name) : [...saved, name]);
   };
 
+  const copyInputs = async () => {
+    try {
+      await navigator.clipboard.writeText(inputExport);
+      onToast('Curve inputs copied to clipboard.');
+    } catch (error) {
+      console.warn('Could not copy curve inputs.', error);
+      onToast('Could not access the clipboard. Select and copy the input data manually.');
+    }
+  };
+
+  const downloadInputs = () => {
+    const extension = inputFormat === 'ae' ? 'jsx' : inputFormat;
+    const blob = new Blob([inputExport], { type: inputFormat === 'json' ? 'application/json' : 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `curve-inputs-${inputTarget}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <aside className="curve-sidebar">
       <div className="curve-sidebar-title">
-        <div className="flex items-center gap-2"><Sliders className="h-4 w-4 text-sky-400" /><h2>Parameters</h2></div>
-        <button type="button" className="curve-small-icon" title="Reset to Easy Ease" onClick={reset}><RotateCcw className="h-3.5 w-3.5" /></button>
+        <div className="curve-preset-tabs" role="tablist" aria-label="Sidebar view">
+          <button type="button" role="tab" aria-selected={sidebarTab === 'parameters'} className={sidebarTab === 'parameters' ? 'active' : ''} onClick={() => setSidebarTab('parameters')}>
+            <Sliders className="mr-1 inline h-3 w-3" />Parameters
+          </button>
+          <button type="button" role="tab" aria-selected={sidebarTab === 'inputs'} className={sidebarTab === 'inputs' ? 'active' : ''} onClick={() => setSidebarTab('inputs')}>
+            Inputs
+          </button>
+        </div>
+        {sidebarTab === 'parameters' && (
+          <button type="button" className="curve-small-icon" title="Reset to Easy Ease" onClick={reset}><RotateCcw className="h-3.5 w-3.5" /></button>
+        )}
       </div>
 
+      {sidebarTab === 'inputs' ? (
+        <section className="curve-sidebar-section">
+          <h3><ArrowRightLeft className="h-3.5 w-3.5 text-emerald-400" /> Replot curve inputs</h3>
+          <p className="text-[10px] leading-4 text-slate-400">
+            Export the current curve settings or frame-by-frame samples to recreate the motion in your editor.
+          </p>
+          <label className="curve-field">Target application
+            <select
+              value={inputTarget}
+              onChange={(event) => {
+                const target = event.target.value === 'resolve' ? 'resolve' : 'after-effects';
+                setInputTarget(target);
+                setInputFormat(target === 'after-effects' ? 'ae' : 'csv');
+              }}
+            >
+              <option value="after-effects">After Effects</option>
+              <option value="resolve">DaVinci Resolve</option>
+            </select>
+          </label>
+          <label className="curve-field">Input format
+            <select value={inputFormat} onChange={(event) => {
+              const format = event.target.value;
+              if (format === 'ae' || format === 'csv' || format === 'json') setInputFormat(format);
+            }}>
+              {inputTarget === 'after-effects' && <option value="ae">Keyframe Ease script (.jsx)</option>}
+              <option value="csv">Keyframe samples (CSV)</option>
+              <option value="json">Curve data (JSON)</option>
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="curve-data-row"><span>Start → End</span><strong>{settings.startValue} → {settings.endValue} {settings.unit}</strong></div>
+            <div className="curve-data-row"><span>Duration</span><strong>{settings.duration}s · {Math.round(settings.duration * settings.fps)} frames</strong></div>
+            <div className="curve-data-row"><span>Bezier P1</span><strong>{bezier.p1.x.toFixed(3)}, {bezier.p1.y.toFixed(3)}</strong></div>
+            <div className="curve-data-row"><span>Bezier P2</span><strong>{bezier.p2.x.toFixed(3)}, {bezier.p2.y.toFixed(3)}</strong></div>
+            <div className="curve-data-row"><span>Outgoing</span><strong>{velocity.outgoingSpeed.toFixed(2)} · {velocity.outgoingInfluence.toFixed(1)}%</strong></div>
+            <div className="curve-data-row"><span>Incoming</span><strong>{velocity.incomingSpeed.toFixed(2)} · {velocity.incomingInfluence.toFixed(1)}%</strong></div>
+          </div>
+          <p className="text-[9px] leading-4 text-slate-500">
+            CSV/JSON contains {curveSamples.length} samples with frame, time, value, speed and acceleration. Resolve workflows vary by parameter; use the rows as keyframe data.
+          </p>
+          <textarea
+            className="curve-export-preview"
+            aria-label="Curve input export preview"
+            readOnly
+            spellCheck={false}
+            value={inputExport}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" className="curve-transform-button" onClick={() => void copyInputs()}>
+              <ClipboardCopy className="h-3.5 w-3.5" /> Copy inputs
+            </button>
+            <button type="button" className="curve-transform-button" onClick={downloadInputs}>
+              <Download className="h-3.5 w-3.5" /> Download
+            </button>
+          </div>
+        </section>
+      ) : (
+      <>
       <section className="curve-sidebar-section">
         <h3><span className="text-indigo-400">◈</span> Animation context</h3>
         <div className="grid grid-cols-2 gap-2">
@@ -308,6 +417,8 @@ export function SidebarControls({
           onPresetChange('');
         }}><FlipHorizontal className="h-3.5 w-3.5" /> Reverse X</button>
       </div>
+      </>
+      )}
     </aside>
   );
 }

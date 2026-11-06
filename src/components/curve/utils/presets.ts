@@ -8,7 +8,15 @@ const preset = (
   x2: number,
   y2: number,
   description: string,
-): EasingPreset => ({ name, category, p1: { x: x1, y: y1 }, p2: { x: x2, y: y2 }, description });
+  previewMode: EasingPreset['previewMode'] = 'both',
+): EasingPreset => ({
+  name,
+  category,
+  p1: { x: x1, y: y1 },
+  p2: { x: x2, y: y2 },
+  description,
+  previewMode,
+});
 
 export const ALL_EASING_PRESETS: EasingPreset[] = [
   preset('Ease In Out', 'Standard', 0.42, 0, 0.58, 1, 'Classic CSS ease-in-out S-curve with a smooth start and end.'),
@@ -40,6 +48,38 @@ export const ALL_EASING_PRESETS: EasingPreset[] = [
   preset('Soft Finish', 'Motion', 0.34, 0.3, 0.72, 0.94, 'Builds motion smoothly and eases gently into the endpoint.'),
   preset('Soft Start', 'Motion', 0.3, 0.06, 0.68, 0.68, 'A gentle launch that gathers speed without a sharp takeoff.'),
   preset('Two Stage', 'Motion', 0.28, 0.18, 0.72, 0.92, 'A smooth ramp-up followed by a distinct, gentle slowdown.'),
+  preset('1', "Adordev's Presets", 0.5, 0, 0.5, 1, 'Adordev speed profile 1.', 'speed'),
+  preset('2', "Adordev's Presets", 0.75, 0, 0.25, 1, 'Adordev speed profile 2.', 'speed'),
+  preset('3', "Adordev's Presets", 1, 0, 0, 1, 'Adordev speed profile 3.', 'speed'),
+  preset('4', "Adordev's Presets", 0, 0, 0, 1, 'Adordev speed profile 4.', 'speed'),
+  preset('5', "Adordev's Presets", 0.25, 0, 0, 1, 'Adordev speed profile 5.', 'speed'),
+  preset('6', "Adordev's Presets", 1, 0, 1, 1, 'Adordev speed profile 6.', 'speed'),
+  preset('7', "Adordev's Presets", 1, 0, 0.75, 1, 'Adordev speed profile 7.', 'speed'),
+  preset('Linear 8', "Adordev's Presets", 0, 0, 1, 1, 'Linear curve from Adordev presets.'),
+  preset('Easy Ease 9', "Adordev's Presets", 1 / 3, 0, 2 / 3, 1, 'Easy Ease curve from Adordev presets.'),
+  preset('Ease In 10', "Adordev's Presets", 0.42, 0, 1, 1, 'Ease In curve from Adordev presets.'),
+  preset('Ease Out 11', "Adordev's Presets", 0, 0, 0.58, 1, 'Ease Out curve from Adordev presets.'),
+  preset('Ease In Out 12', "Adordev's Presets", 0.42, 0, 0.58, 1, 'Ease In Out curve from Adordev presets.'),
+  preset('Sine In 13', "Adordev's Presets", 0.12, 0, 0.39, 0, 'Sine In curve from Adordev presets.'),
+  preset('Sine Out 14', "Adordev's Presets", 0.61, 1, 0.88, 1, 'Sine Out curve from Adordev presets.'),
+  preset('Sine In Out 15', "Adordev's Presets", 0.37, 0, 0.63, 1, 'Sine In Out curve from Adordev presets.'),
+  preset('Quad In 16', "Adordev's Presets", 0.11, 0, 0.5, 0, 'Quad In curve from Adordev presets.'),
+  preset('Quad Out 17', "Adordev's Presets", 0.5, 1, 0.89, 1, 'Quad Out curve from Adordev presets.'),
+  preset('Quad In Out 18', "Adordev's Presets", 0.45, 0, 0.55, 1, 'Quad In Out curve from Adordev presets.'),
+  preset('Cubic In 19', "Adordev's Presets", 0.32, 0, 0.67, 0, 'Cubic In curve from Adordev presets.'),
+  preset('Cubic Out 20', "Adordev's Presets", 0.33, 1, 0.68, 1, 'Cubic Out curve from Adordev presets.'),
+  preset('Cubic In Out 21', "Adordev's Presets", 0.65, 0, 0.35, 1, 'Cubic In Out curve from Adordev presets.'),
+  preset('Quart In 22', "Adordev's Presets", 0.5, 0, 0.75, 0, 'Quart In curve from Adordev presets.'),
+  preset('Quart Out 23', "Adordev's Presets", 0.25, 1, 0.5, 1, 'Quart Out curve from Adordev presets.'),
+  preset('Quart In Out 24', "Adordev's Presets", 0.76, 0, 0.24, 1, 'Quart In Out curve from Adordev presets.'),
+  preset('Quint In 25', "Adordev's Presets", 0.64, 0, 0.78, 0, 'Quint In curve from Adordev presets.'),
+  preset('Quint Out 26', "Adordev's Presets", 0.22, 1, 0.36, 1, 'Quint Out curve from Adordev presets.'),
+  preset('Quint In Out 27', "Adordev's Presets", 0.83, 0, 0.17, 1, 'Quint In Out curve from Adordev presets.'),
+  preset('Expo In 28', "Adordev's Presets", 0.7, 0, 0.84, 0, 'Expo In curve from Adordev presets.'),
+  preset('Expo Out 29', "Adordev's Presets", 0.16, 1, 0.3, 1, 'Expo Out curve from Adordev presets.'),
+  preset('Expo In Out 30', "Adordev's Presets", 0.87, 0, 0.13, 1, 'Expo In Out curve from Adordev presets.'),
+  preset('Circ In 31', "Adordev's Presets", 0.55, 0, 1, 0.45, 'Circ In curve from Adordev presets.'),
+  preset('Circ Out 32', "Adordev's Presets", 0, 0.55, 0.45, 1, 'Circ Out curve from Adordev presets.'),
   preset('Ease In Sine', 'Sine', 0.12, 0, 0.39, 0, 'Very gentle sine-like acceleration.'),
   preset('Ease Out Sine', 'Sine', 0.61, 1, 0.88, 1, 'Gentle sine-like deceleration.'),
   preset('Ease In Out Sine', 'Sine', 0.37, 0, 0.63, 1, 'Natural sinusoidal ease-in-out.'),
@@ -75,5 +115,5 @@ export const ALL_EASING_PRESETS: EasingPreset[] = [
 ];
 
 export const EASING_CATEGORIES = [
-  'All', 'Standard', 'Motion', 'Power', 'Spring', 'Sine', 'Quad', 'Cubic', 'Quart', 'Quint', 'Expo', 'Circ', 'Back', 'Elastic', 'Bounce',
+  'All', 'Standard', "Adordev's Presets", 'Motion', 'Power', 'Spring', 'Sine', 'Quad', 'Cubic', 'Quart', 'Quint', 'Expo', 'Circ', 'Back', 'Elastic', 'Bounce',
 ];

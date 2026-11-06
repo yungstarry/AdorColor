@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
-import type { MouseEvent, PointerEvent, ReactNode } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import { Crosshair, Eye, EyeOff } from 'lucide-react';
 import {
   bezierToAEVelocity,
   evaluateBezier,
   getStateAtTime,
-  sampleAnimationCurve,
+  sampleBezierSpeedCurve,
   solveBezierParamForX,
-  updateBezierFromSpeedHandle,
+  updateBezierSpeedInfluence,
 } from './utils/bezierMath';
 import type { AnimationSettings, BezierPoints, SamplePoint } from './types';
 
@@ -215,72 +215,55 @@ function ValueGraph({ bezier, settings, currentTime, onBezierChange, onScrubTime
   );
 }
 
-function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChange, onScrubTime }: SpeedGraphProps) {
-  const drag = useRef<{
-    side: 'start' | 'end' | 'scrub';
-    baseTime: number;
-    baseSpeed: number;
-    pointerTime: number;
-    pointerSpeed: number;
-    clientX: number;
-    clientY: number;
-    axisLock: 'time' | 'speed' | null;
-  } | null>(null);
+function SpeedGraph({ bezier, settings, currentTime, onBezierChange, onScrubTime }: SpeedGraphProps) {
+  const drag = useRef<'start' | 'end' | 'scrub' | null>(null);
   const [showReticle, setShowReticle] = useState(true);
   const [showArea, setShowArea] = useState(true);
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number; time: number; speed: number } | null>(null);
-  const [lockedRange, setLockedRange] = useState<{ min: number; max: number } | null>(null);
   const [hoveredHandle, setHoveredHandle] = useState<'start' | 'end' | null>(null);
   const [activeHandle, setActiveHandle] = useState<'start' | 'end' | null>(null);
-  const data = useMemo(() => sampleAnimationCurve(bezier, settings, 160), [bezier, settings]);
+  const speedData = useMemo(() => sampleBezierSpeedCurve(bezier, settings), [bezier, settings]);
+  const speedSamples = speedData.samples;
   const velocity = useMemo(() => bezierToAEVelocity(bezier, settings), [bezier, settings]);
-  const allSpeeds = [
-    ...data.samples.map(({ speed }) => speed),
-    velocity.outgoingSpeed,
-    velocity.incomingSpeed,
-    0,
-  ];
-  const minSpeed = Math.min(0, ...allSpeeds);
-  const maxSpeed = Math.max(0, ...allSpeeds);
-  const span = Math.max(1, maxSpeed - minSpeed);
-  const plotMin = lockedRange?.min ?? minSpeed - span * 0.12;
-  const plotMax = lockedRange?.max ?? maxSpeed + span * 0.15;
+  const minNormalizedSpeed = Math.min(0, ...speedSamples.map(({ normalizedSpeed }) => normalizedSpeed));
+  const maxNormalizedSpeed = Math.max(1, ...speedSamples.map(({ normalizedSpeed }) => normalizedSpeed));
   const averageSpeed = (settings.endValue - settings.startValue) / Math.max(settings.duration, 1e-6);
-  const canEditSpeed = Math.abs(settings.endValue - settings.startValue) >= 1e-8;
-  const peakSpeed = data.samples.reduce(
+  const peakSpeed = speedSamples.reduce(
     (maximum, sample) => Math.abs(sample.speed) > Math.abs(maximum) ? sample.speed : maximum,
     0,
   );
-  const toPoint = (time: number, speed: number) => ({
+  const toPoint = (time: number, normalizedSpeed: number) => ({
     x: PAD_X + clamp(time / Math.max(settings.duration, 1e-6), 0, 1) * PLOT_W,
-    y: HEIGHT - PAD_Y - ((speed - plotMin) / (plotMax - plotMin)) * PLOT_H,
+    y: HEIGHT - PAD_Y - ((normalizedSpeed - minNormalizedSpeed) / (maxNormalizedSpeed - minNormalizedSpeed)) * PLOT_H,
   });
   const pointerToGraph = (svg: SVGSVGElement, clientX: number, clientY: number) => {
     const rect = svg.getBoundingClientRect();
     const x = clamp(((clientX - rect.left) / rect.width) * WIDTH, PAD_X, WIDTH - PAD_X);
     const y = clamp(((clientY - rect.top) / rect.height) * HEIGHT, PAD_Y, HEIGHT - PAD_Y);
+    const normalizedSpeed = maxNormalizedSpeed - ((y - PAD_Y) / PLOT_H) * (maxNormalizedSpeed - minNormalizedSpeed);
     return {
       x,
       y,
       time: ((x - PAD_X) / PLOT_W) * settings.duration,
-      speed: plotMax - ((y - PAD_Y) / PLOT_H) * (plotMax - plotMin),
+      normalizedSpeed,
+      speed: normalizedSpeed * speedData.peakSlope * averageSpeed,
     };
   };
-  const curvePath = data.samples.map((sample, index) => {
-    const point = toPoint(sample.time, sample.speed);
+  const curvePath = speedSamples.map((sample, index) => {
+    const point = toPoint(sample.time, sample.normalizedSpeed);
     return `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`;
   }).join(' ');
   const zeroPoint = toPoint(0, 0);
-  const startPoint = toPoint(0, velocity.outgoingSpeed);
-  const endPoint = toPoint(settings.duration, velocity.incomingSpeed);
-  const startHandle = toPoint(bezier.p1.x * settings.duration, velocity.outgoingSpeed);
-  const endHandle = toPoint(bezier.p2.x * settings.duration, velocity.incomingSpeed);
+  const firstSample = speedSamples[0];
+  const lastSample = speedSamples[speedSamples.length - 1];
+  const startPoint = toPoint(0, firstSample.normalizedSpeed);
+  const endPoint = toPoint(settings.duration, lastSample.normalizedSpeed);
+  const startHandle = toPoint((bezier.p1.x / 2) * settings.duration, firstSample.normalizedSpeed);
+  const endHandle = toPoint((1 - (1 - bezier.p2.x) / 2) * settings.duration, lastSample.normalizedSpeed);
   const ticks = Array.from({ length: 6 }, (_, index) => index / 5);
-  const handleGap = Math.hypot(startHandle.x - endHandle.x, startHandle.y - endHandle.y);
-  const handleFan = clamp((44 - handleGap) / 2, 0, 12);
   const handles = [
-    { side: 'start' as const, point: { ...startHandle, x: startHandle.x - handleFan }, time: bezier.p1.x * settings.duration, speed: velocity.outgoingSpeed, influence: velocity.outgoingInfluence },
-    { side: 'end' as const, point: { ...endHandle, x: endHandle.x + handleFan }, time: bezier.p2.x * settings.duration, speed: velocity.incomingSpeed, influence: velocity.incomingInfluence },
+    { side: 'start' as const, point: startHandle, speed: firstSample.speed, influence: velocity.outgoingInfluence },
+    { side: 'end' as const, point: endHandle, speed: lastSample.speed, influence: velocity.incomingInfluence },
   ];
 
   const beginPointer = (event: PointerEvent<SVGSVGElement>) => {
@@ -289,31 +272,8 @@ function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChang
       .map((handle) => ({ ...handle, distance: Math.hypot(pos.x - handle.point.x, pos.y - handle.point.y) }))
       .filter(({ distance }) => distance < 36)
       .sort((a, b) => a.distance - b.distance)[0];
-    drag.current = hit && canEditSpeed
-      ? {
-          side: hit.side,
-          baseTime: hit.time,
-          baseSpeed: hit.speed,
-          pointerTime: pos.time,
-          pointerSpeed: pos.speed,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          axisLock: null,
-        }
-      : {
-          side: 'scrub',
-          baseTime: pos.time,
-          baseSpeed: pos.speed,
-          pointerTime: pos.time,
-          pointerSpeed: pos.speed,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          axisLock: null,
-        };
-    if (hit && canEditSpeed) {
-      setLockedRange({ min: plotMin, max: plotMax });
-      setActiveHandle(hit.side);
-    }
+    drag.current = hit?.side ?? 'scrub';
+    if (hit) setActiveHandle(hit.side);
     event.currentTarget.setPointerCapture(event.pointerId);
     if (!hit) onScrubTime(pos.time);
     else event.preventDefault();
@@ -331,45 +291,16 @@ function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChang
       setHoveredHandle((previous) => previous === nextHovered ? previous : nextHovered);
       return;
     }
-    if (currentDrag.side === 'scrub') {
+    if (currentDrag === 'scrub') {
       onScrubTime(pos.time);
       return;
     }
-    const movementScale = event.ctrlKey || event.metaKey ? 0.1 : 1;
-    let time = currentDrag.baseTime + (pos.time - currentDrag.pointerTime) * movementScale;
-    let speed = currentDrag.baseSpeed + (pos.speed - currentDrag.pointerSpeed) * movementScale;
-    if (event.shiftKey) {
-      if (!currentDrag.axisLock && Math.hypot(event.clientX - currentDrag.clientX, event.clientY - currentDrag.clientY) > 4) {
-        currentDrag.axisLock = Math.abs(event.clientX - currentDrag.clientX) > Math.abs(event.clientY - currentDrag.clientY) ? 'time' : 'speed';
-      }
-      if (currentDrag.axisLock === 'time') speed = currentDrag.baseSpeed;
-      else if (currentDrag.axisLock === 'speed') time = currentDrag.baseTime;
-    }
-
-    const normalizedTime = clamp(time / settings.duration, 0.001, 0.999);
-    const snapInfluence = Math.abs(event.clientX - currentDrag.clientX) > 2
-      ? [1 / 3, 2 / 3].find((candidate) => Math.abs(normalizedTime - candidate) <= 10 / PLOT_W)
-      : undefined;
-    if (snapInfluence !== undefined) time = snapInfluence * settings.duration;
-    if (Math.abs(speed) <= (plotMax - plotMin) * 8 / PLOT_H) speed = 0;
-    onBezierChange(updateBezierFromSpeedHandle(bezier, currentDrag.side, time, speed, settings));
+    onBezierChange(updateBezierSpeedInfluence(bezier, currentDrag, (pos.x - PAD_X) / PLOT_W));
   };
 
   const endPointer = () => {
     drag.current = null;
-    setLockedRange(null);
     setActiveHandle(null);
-  };
-
-  const resetHandle = (event: MouseEvent<SVGSVGElement>) => {
-    const pos = pointerToGraph(event.currentTarget, event.clientX, event.clientY);
-    const hit = handles
-      .map((handle) => ({ ...handle, distance: Math.hypot(pos.x - handle.point.x, pos.y - handle.point.y) }))
-      .filter(({ distance }) => distance < 36)
-      .sort((a, b) => a.distance - b.distance)[0];
-    if (!hit || !canEditSpeed) return;
-    event.preventDefault();
-    onBezierChange(updateBezierFromSpeedHandle(bezier, hit.side, hit.time, averageSpeed, settings));
   };
 
   return (
@@ -389,14 +320,13 @@ function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChang
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
-          aria-label={`Interactive speed graph. Drag the start and end handles to edit speed and influence; double-click a handle to reset its speed to average. Hold Shift to lock an axis, Ctrl or Command for fine control. ${canEditSpeed ? '' : 'Speed editing is disabled because start and end values match.'}`}
+          aria-label="Interactive speed graph. Drag the start and end handles horizontally to edit influence, or click the graph to scrub."
           className="curve-chart"
           onPointerDown={beginPointer}
           onPointerMove={movePointer}
           onPointerUp={endPointer}
           onPointerCancel={endPointer}
           onLostPointerCapture={endPointer}
-          onDoubleClick={resetHandle}
           onPointerLeave={() => {
             if (!drag.current) {
               setHoverPoint(null);
@@ -406,8 +336,9 @@ function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChang
         >
           {ticks.map((tick) => {
             const x = PAD_X + tick * PLOT_W;
-            const speed = plotMax - tick * (plotMax - plotMin);
-            const y = toPoint(0, speed).y;
+            const normalizedSpeed = maxNormalizedSpeed - tick * (maxNormalizedSpeed - minNormalizedSpeed);
+            const speed = normalizedSpeed * speedData.peakSlope * averageSpeed;
+            const y = toPoint(0, normalizedSpeed).y;
             return (
               <g key={tick}>
                 <path d={`M ${x} ${PAD_Y} V ${HEIGHT - PAD_Y} M ${PAD_X} ${y} H ${WIDTH - PAD_X}`} className="curve-grid" />
@@ -428,31 +359,44 @@ function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChang
           <path d={`M ${startPoint.x} ${startPoint.y} H ${startHandle.x} M ${endHandle.x} ${endPoint.y} H ${endPoint.x}`} className="curve-speed-handle-line" />
           <path d={`M ${PAD_X} ${zeroPoint.y} H ${WIDTH - PAD_X}`} className="curve-average-line" />
           <path d={`M ${toPoint(currentTime, 0).x} ${PAD_Y} V ${HEIGHT - PAD_Y}`} className="curve-playhead-line" />
-          <circle cx={toPoint(currentTime, currentState.speed).x} cy={toPoint(currentTime, currentState.speed).y} r="5" className="curve-playhead-dot" />
+          {(() => {
+            const normalizedTime = currentTime / Math.max(settings.duration, 1e-6);
+            const parameter = solveBezierParamForX(normalizedTime, clamp(bezier.p1.x, 0.001, 0.999), clamp(bezier.p2.x, 0.001, 0.999));
+            const slope = evaluateBezier(parameter, clamp(bezier.p1.x, 0.001, 0.999), bezier.p1.y, clamp(bezier.p2.x, 0.001, 0.999), bezier.p2.y).slope;
+            const point = toPoint(currentTime, slope / speedData.peakSlope);
+            return <circle cx={point.x} cy={point.y} r="5" className="curve-playhead-dot" />;
+          })()}
           {handles.map(({ side, point, speed, influence }) => {
             const isHighlighted = activeHandle === side || hoveredHandle === side;
-            const labelX = clamp(point.x, PAD_X + 57, WIDTH - PAD_X - 57);
-            const labelY = clamp(point.y - 25, PAD_Y + 12, HEIGHT - PAD_Y - 10);
+            const labelWidth = 132;
+            const labelHeight = 34;
+            const labelX = side === 'start'
+              ? clamp(point.x + 12, PAD_X + 6, WIDTH / 2 - labelWidth - 8)
+              : clamp(point.x - labelWidth - 12, WIDTH / 2 + 8, WIDTH - PAD_X - labelWidth);
+            const labelY = clamp(point.y - labelHeight - 12, PAD_Y + 4, HEIGHT - PAD_Y - labelHeight - 4);
+            const labelAnchorX = side === 'start' ? labelX + labelWidth : labelX;
+            const labelIsAbove = labelY + labelHeight < point.y;
+            const leaderY = labelIsAbove ? labelY + labelHeight + 4 : labelY - 4;
+            const pointLeaderY = point.y + (labelIsAbove ? -9 : 9);
             return (
             <g key={side} data-handle={side} className={isHighlighted ? 'is-highlighted' : ''}>
               <circle cx={point.x} cy={point.y} r="27" className="curve-speed-hit-area" />
-              {handleFan > 0 && (
-                <path
-                  d={`M ${side === 'start' ? startHandle.x : endHandle.x} ${point.y} H ${point.x}`}
-                  className="curve-speed-handle-offset"
-                />
-              )}
               {isHighlighted && <circle cx={point.x} cy={point.y} r="13" className="curve-speed-handle-halo" />}
               <circle cx={point.x} cy={point.y} r={isHighlighted ? 8 : 7} className={`curve-speed-handle curve-speed-handle-${side}`} />
               <path d={`M ${point.x - 3} ${point.y} H ${point.x + 3} M ${point.x} ${point.y - 3} V ${point.y + 3}`} className="curve-handle-cross" />
-              {isHighlighted && (
-                <g pointerEvents="none">
-                  <rect x={labelX - 55} y={labelY - 11} width="110" height="19" rx="5" className="curve-speed-handle-label-bg" />
-                  <text x={labelX} y={labelY + 2} textAnchor="middle" className="curve-speed-handle-label">
-                    {side === 'start' ? 'OUT' : 'IN'} · {speed.toFixed(1)} · {influence.toFixed(1)}%
-                  </text>
-                </g>
-              )}
+              <g pointerEvents="none" className={isHighlighted ? 'curve-speed-input-label is-highlighted' : 'curve-speed-input-label'}>
+                <path
+                  d={`M ${point.x} ${pointLeaderY} L ${point.x} ${leaderY} L ${labelAnchorX} ${leaderY}`}
+                  className="curve-speed-input-leader"
+                />
+                <rect x={labelX} y={labelY} width={labelWidth} height={labelHeight} rx="5" className="curve-speed-handle-label-bg" />
+                <text x={labelX + 8} y={labelY + 14} className="curve-speed-handle-label">
+                  {side === 'start' ? 'OUT' : 'IN'} · {speed.toFixed(1)} {settings.unit || 'value'}/s
+                </text>
+                <text x={labelX + 8} y={labelY + 27} className="curve-speed-handle-label curve-speed-influence-label">
+                  Influence · {influence.toFixed(1)}%
+                </text>
+              </g>
             </g>
             );
           })}
@@ -467,10 +411,9 @@ function SpeedGraph({ bezier, settings, currentTime, currentState, onBezierChang
         </svg>
         <div className="curve-graph-legend">
           <span><i className="bg-emerald-400" /> Speed</span>
-          <span>Integrated area: {data.totalArea.toFixed(2)}{settings.unit}</span>
+          <span>Integrated area: {(settings.endValue - settings.startValue).toFixed(2)}{settings.unit}</span>
           <span>Target: {(settings.endValue - settings.startValue).toFixed(2)}{settings.unit}</span>
-          <span>Drag handle for speed + influence · Shift locks axis · Ctrl/⌘ fine · double-click resets</span>
-          {!canEditSpeed && <span>Speed handles disabled at zero displacement</span>}
+          <span>Drag handles horizontally to adjust influence</span>
         </div>
       </div>
     </GraphShell>

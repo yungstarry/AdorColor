@@ -129,6 +129,39 @@ export function sampleAnimationCurve(
   return { samples, maxSpeed, minSpeed, totalArea, maxAcceleration };
 }
 
+export function sampleBezierSpeedCurve(
+  bezier: BezierPoints,
+  settings: AnimationSettings,
+  sampleSteps = 96,
+): {
+  samples: Array<{ time: number; slope: number; normalizedSpeed: number; speed: number }>;
+  peakSlope: number;
+} {
+  const steps = Math.max(1, Math.floor(sampleSteps));
+  const duration = Math.max(settings.duration, 1e-6);
+  const x1 = clamp(bezier.p1.x, 0.001, 0.999);
+  const x2 = clamp(bezier.p2.x, 0.001, 0.999);
+  const rawSamples = Array.from({ length: steps + 1 }, (_, index) => {
+    const t = index / steps;
+    const result = evaluateBezier(t, x1, bezier.p1.y, x2, bezier.p2.y);
+    const slope = result.dy / Math.max(1e-6, result.dx);
+
+    return { time: result.x * duration, slope };
+  });
+  const peakSlope = Math.max(...rawSamples.map(({ slope }) => slope)) || 1;
+  const averageSpeed = (settings.endValue - settings.startValue) / duration;
+
+  return {
+    samples: rawSamples.map(({ time, slope }) => ({
+      time,
+      slope,
+      normalizedSpeed: slope / peakSlope,
+      speed: slope * averageSpeed,
+    })),
+    peakSlope,
+  };
+}
+
 export function bezierToAEVelocity(
   bezier: BezierPoints,
   settings: AnimationSettings,
@@ -192,6 +225,18 @@ export function updateBezierFromSpeedHandle(
     return { ...bezier, p1: { x, y: x * normalizedSlope } };
   }
   return { ...bezier, p2: { x, y: 1 - (1 - x) * normalizedSlope } };
+}
+
+export function updateBezierSpeedInfluence(
+  bezier: BezierPoints,
+  side: 'start' | 'end',
+  graphX: number,
+): BezierPoints {
+  const x = clamp(graphX, 0, 1);
+  if (side === 'start') {
+    return { ...bezier, p1: { ...bezier.p1, x: Number(clamp(2 * x, 0.001, 1).toFixed(4)) } };
+  }
+  return { ...bezier, p2: { ...bezier.p2, x: Number(clamp(2 * x - 1, 0, 0.999).toFixed(4)) } };
 }
 
 export function formatCSSBezier(bezier: BezierPoints): string {

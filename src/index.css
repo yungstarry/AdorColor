@@ -707,6 +707,19 @@
   vector-effect: non-scaling-stroke;
 }
 
+.curve-speed-input-label.is-highlighted .curve-speed-handle-label-bg {
+  fill: rgba(6, 30, 25, 0.98);
+  stroke: rgba(110, 231, 183, 0.9);
+}
+
+.curve-speed-input-leader {
+  fill: none;
+  stroke: rgba(110, 231, 183, 0.58);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
 .curve-speed-handle-offset {
   fill: none;
   stroke: rgba(167, 243, 208, 0.8);
@@ -718,11 +731,17 @@
 .curve-speed-handle-label {
   fill: #d1fae5;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 650;
   paint-order: stroke;
   stroke: #0b1120;
   stroke-width: 2px;
+}
+
+.curve-speed-influence-label {
+  fill: #a7f3d0;
+  font-size: 9px;
+  font-weight: 550;
   stroke-linejoin: round;
 }
 

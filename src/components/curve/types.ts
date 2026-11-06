@@ -41,6 +41,7 @@ export interface EasingPreset {
   p1: BezierPoint;
   p2: BezierPoint;
   description: string;
+  previewMode?: 'both' | 'speed';
 }
 
 export type PreviewMode = 'horizontal' | 'scale' | 'rotation' | 'bounce' | 'opacity';
