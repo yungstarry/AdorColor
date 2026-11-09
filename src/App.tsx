@@ -14,6 +14,7 @@ import { SavePaletteModal } from './components/palette/SavePaletteModal';
 import { Toast } from './components/Toast';
 import { VideoBriefStudio, createVideoColorBrief } from './components/palette/VideoBriefStudio';
 import { ScriptSplitter } from './components/script/ScriptSplitter';
+import { TextFileWriter } from './components/TextFileWriter';
 import {
   Compass,
   WandSparkles,
@@ -23,6 +24,7 @@ import {
   Image as ImageIcon,
   FolderHeart,
   Video,
+  FileText,
 } from 'lucide-react';
 
 import { getPalettesForFilter } from './data/paletteDatabase';
@@ -114,6 +116,7 @@ const WORKSPACE_LINKS = [
   { view: 'image-picker', label: 'Image Color Picker', icon: ImageIcon },
   { view: 'dashboard', label: 'Saved Library', icon: FolderHeart },
   { view: 'video-briefs', label: 'Video Briefs', icon: Video },
+  { view: 'text-writer', label: 'Text Writer', icon: FileText },
 ] as const;
 
 const isVideoColorBrief = (value: unknown): value is VideoColorBrief => {
@@ -616,6 +619,8 @@ export default function App() {
       )}
 
       {activeView === 'script-splitter' && <ScriptSplitter />}
+
+      {activeView === 'text-writer' && <TextFileWriter />}
 
       {activeView === 'curve-converter' && (
         <Suspense fallback={<main className="min-h-[calc(100vh-60px)] bg-[#080b11] p-8 text-sm text-white">Loading Curve Converter…</main>}>
