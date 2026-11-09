@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Download, FileText, FolderOpen } from 'lucide-react';
+import { Toast } from './Toast';
 
 interface WritableTextFile {
   write(data: Blob): Promise<void>;
@@ -170,6 +171,7 @@ export function TextFileWriter() {
   const [customPrefix, setCustomPrefix] = useState(initialSettings.settings.customPrefix);
   const [downloadFolder, setDownloadFolder] = useState<TextDirectoryHandle | null>(null);
   const [downloadMessage, setDownloadMessage] = useState(initialSettings.message);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
   const firstLine = text.split(/\r?\n/, 1)[0];
   const title = firstLine.replace(/^\s*topic\s*:\s*/i, '').trim();
   const selectedPrefix = prefix === CUSTOM_PREFIX ? customPrefix.trim() : prefix;
@@ -187,6 +189,12 @@ export function TextFileWriter() {
       );
     }
   }, [text, prefix, customPrefix]);
+
+  useEffect(() => {
+    if (!saveToast) return;
+    const timeout = window.setTimeout(() => setSaveToast(null), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [saveToast]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -256,6 +264,7 @@ export function TextFileWriter() {
         await writable.write(file);
         await writable.close();
         setDownloadMessage(`Saved ${fileName} to ${downloadFolder.name}.`);
+        setSaveToast(`Saved ${fileName}`);
       } catch (error) {
         setDownloadMessage(
           error instanceof Error
@@ -438,6 +447,7 @@ export function TextFileWriter() {
           </div>
         </div>
       </section>
+      <Toast message={saveToast} />
     </main>
   );
 }
