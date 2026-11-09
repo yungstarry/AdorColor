@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Download, FileText, FolderOpen } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, FileText, FolderOpen } from 'lucide-react';
 
 interface WritableTextFile {
   write(data: Blob): Promise<void>;
@@ -108,6 +108,46 @@ const PREFIX_OPTIONS = [
 ] as const;
 
 const CUSTOM_PREFIX = 'custom';
+const WRITER_SETTINGS_KEY = 'palettelab_text_writer_settings';
+
+interface TextWriterSettings {
+  text: string;
+  prefix: string;
+  customPrefix: string;
+}
+
+function isTextWriterSettings(value: unknown): value is TextWriterSettings {
+  if (!value || typeof value !== 'object') return false;
+  const settings = value as Partial<TextWriterSettings>;
+
+  return (
+    typeof settings.text === 'string' &&
+    typeof settings.prefix === 'string' &&
+    (PREFIX_OPTIONS.includes(settings.prefix as (typeof PREFIX_OPTIONS)[number]) ||
+      settings.prefix === CUSTOM_PREFIX) &&
+    typeof settings.customPrefix === 'string'
+  );
+}
+
+function readTextWriterSettings(): { settings: TextWriterSettings; message: string } {
+  try {
+    const saved = localStorage.getItem(WRITER_SETTINGS_KEY);
+    if (!saved) {
+      return { settings: { text: '', prefix: '1st', customPrefix: '' }, message: '' };
+    }
+
+    const parsed: unknown = JSON.parse(saved);
+    if (!isTextWriterSettings(parsed)) throw new Error('Saved Text Writer settings are invalid.');
+    return { settings: parsed, message: '' };
+  } catch (error) {
+    return {
+      settings: { text: '', prefix: '1st', customPrefix: '' },
+      message: error instanceof Error
+        ? `Could not restore Text Writer settings: ${error.message}`
+        : 'Could not restore Text Writer settings due to an unknown error.',
+    };
+  }
+}
 
 function sanitizeFileNamePart(value: string): string {
   return value
@@ -124,16 +164,29 @@ function getFileName(prefix: string, title: string): string {
 }
 
 export function TextFileWriter() {
-  const [text, setText] = useState('');
-  const [prefix, setPrefix] = useState<string>('1st');
-  const [customPrefix, setCustomPrefix] = useState('');
+  const [initialSettings] = useState(readTextWriterSettings);
+  const [text, setText] = useState(initialSettings.settings.text);
+  const [prefix, setPrefix] = useState<string>(initialSettings.settings.prefix);
+  const [customPrefix, setCustomPrefix] = useState(initialSettings.settings.customPrefix);
   const [downloadFolder, setDownloadFolder] = useState<TextDirectoryHandle | null>(null);
-  const [downloadMessage, setDownloadMessage] = useState('');
+  const [downloadMessage, setDownloadMessage] = useState(initialSettings.message);
   const firstLine = text.split(/\r?\n/, 1)[0];
   const title = firstLine.replace(/^\s*topic\s*:\s*/i, '').trim();
   const selectedPrefix = prefix === CUSTOM_PREFIX ? customPrefix.trim() : prefix;
   const canDownload = Boolean(text.trim() && sanitizeFileNamePart(selectedPrefix));
   const supportsFolderSelection = typeof window.showDirectoryPicker === 'function';
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WRITER_SETTINGS_KEY, JSON.stringify({ text, prefix, customPrefix }));
+    } catch (error) {
+      setDownloadMessage(
+        error instanceof Error
+          ? `Could not save Text Writer settings: ${error.message}`
+          : 'Could not save Text Writer settings due to an unknown error.'
+      );
+    }
+  }, [text, prefix, customPrefix]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -222,6 +275,14 @@ export function TextFileWriter() {
     setDownloadMessage('Download started. Check your browser Downloads folder.');
   };
 
+  const stepPrefix = (direction: -1 | 1) => {
+    const currentIndex = PREFIX_OPTIONS.indexOf(
+      prefix === CUSTOM_PREFIX ? '1st' : prefix as (typeof PREFIX_OPTIONS)[number]
+    );
+    const nextIndex = (currentIndex + direction + PREFIX_OPTIONS.length) % PREFIX_OPTIONS.length;
+    setPrefix(PREFIX_OPTIONS[nextIndex]);
+  };
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 md:px-8">
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -238,90 +299,111 @@ export function TextFileWriter() {
         </div>
 
         <div className="space-y-4 p-5 md:p-7">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm font-semibold text-gray-700">Download location</p>
-            {downloadFolder ? (
-              <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Selected folder</p>
-                <p className="mt-0.5 break-all text-sm font-semibold text-blue-950">{downloadFolder.name}</p>
+          <div className="grid items-stretch gap-3 md:grid-cols-2">
+            <section className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="text-file-prefix" className="text-xs font-semibold text-gray-700">
+                  File name prefix
+                </label>
+                <div className="flex items-stretch gap-2">
+                  <select
+                    id="text-file-prefix"
+                    value={prefix}
+                    onChange={(event) => setPrefix(event.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    {PREFIX_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    <option value={CUSTOM_PREFIX}>Custom</option>
+                  </select>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      aria-label="Previous file name prefix"
+                      onClick={() => stepPrefix(-1)}
+                      className="flex flex-1 items-center justify-center rounded-md border border-gray-200 bg-white px-2 text-gray-600 transition hover:bg-gray-50 hover:text-blue-700"
+                    >
+                      <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next file name prefix"
+                      onClick={() => stepPrefix(1)}
+                      className="flex flex-1 items-center justify-center rounded-md border border-gray-200 bg-white px-2 text-gray-600 transition hover:bg-gray-50 hover:text-blue-700"
+                    >
+                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+                {prefix === CUSTOM_PREFIX && (
+                  <>
+                    <label htmlFor="text-file-custom-prefix" className="text-xs font-semibold text-gray-700">
+                      Custom prefix
+                    </label>
+                    <input
+                      id="text-file-custom-prefix"
+                      value={customPrefix}
+                      onChange={(event) => setCustomPrefix(event.target.value)}
+                      placeholder="Enter a prefix"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </>
+                )}
+                <p className="text-xs text-gray-500">Choose an ordinal or enter a custom prefix.</p>
               </div>
-            ) : (
-              <p className="mt-1 text-sm font-medium text-gray-700">Browser Downloads (default)</p>
-            )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleChooseFolder}
-                disabled={!supportsFolderSelection}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <FolderOpen className="h-4 w-4" aria-hidden="true" />
-                Choose folder
-              </button>
-              {downloadFolder && (
+            </section>
+
+            <section className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <p className="shrink-0 text-xs font-semibold text-gray-700">Download location</p>
+                <p
+                  className="min-w-0 truncate text-right text-xs font-medium text-gray-600"
+                  title={downloadFolder?.name ?? 'Browser Downloads (default)'}
+                >
+                  {downloadFolder?.name ?? 'Browser Downloads (default)'}
+                </p>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={async () => {
-                    try {
-                      await clearFolderHandle();
-                      setDownloadFolder(null);
-                      setDownloadMessage('Using browser Downloads. The saved folder preference was cleared.');
-                    } catch (error) {
-                      setDownloadMessage(
-                        error instanceof Error
-                          ? `Could not clear the saved folder: ${error.message}`
-                          : 'Could not clear the saved folder due to an unknown error.'
-                      );
-                    }
-                  }}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                  onClick={handleChooseFolder}
+                  disabled={!supportsFolderSelection}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Use browser Downloads
+                  <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                  Choose folder
                 </button>
+                {downloadFolder && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await clearFolderHandle();
+                        setDownloadFolder(null);
+                        setDownloadMessage('Using browser Downloads. The saved folder preference was cleared.');
+                      } catch (error) {
+                        setDownloadMessage(
+                          error instanceof Error
+                            ? `Could not clear the saved folder: ${error.message}`
+                            : 'Could not clear the saved folder due to an unknown error.'
+                        );
+                      }
+                    }}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Use browser Downloads
+                  </button>
+                )}
+              </div>
+              {downloadMessage && (
+                <p className="mt-1 line-clamp-1 text-[11px] text-gray-500" role="status" title={downloadMessage}>{downloadMessage}</p>
               )}
-            </div>
-            <p className="mt-2 text-xs text-gray-500">
-              {supportsFolderSelection
-                ? downloadFolder
-                  ? 'Files will save to this folder. Chrome does not expose its full computer path to websites.'
-                  : 'Choose a folder to save there directly, or keep using your browser Downloads folder.'
-                : 'Folder selection is not supported in this browser. Downloads will use the browser’s default location.'}
-            </p>
-            {downloadMessage && (
-              <p className="mt-2 text-sm text-gray-700" role="status">{downloadMessage}</p>
-            )}
+              {!supportsFolderSelection && (
+                <p className="mt-1 text-[11px] text-gray-500">Folder selection is unavailable; using browser Downloads.</p>
+              )}
+            </section>
           </div>
-
-          <div className="flex flex-col gap-2 sm:max-w-xs">
-            <label htmlFor="text-file-prefix" className="text-sm font-semibold text-gray-700">
-              File name prefix
-            </label>
-            <select
-              id="text-file-prefix"
-              value={prefix}
-              onChange={(event) => setPrefix(event.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-            >
-              {PREFIX_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-              <option value={CUSTOM_PREFIX}>Custom</option>
-            </select>
-          </div>
-          {prefix === CUSTOM_PREFIX && (
-            <div className="flex flex-col gap-2 sm:max-w-xs">
-              <label htmlFor="text-file-custom-prefix" className="text-sm font-semibold text-gray-700">
-                Custom prefix
-              </label>
-              <input
-                id="text-file-custom-prefix"
-                value={customPrefix}
-                onChange={(event) => setCustomPrefix(event.target.value)}
-                placeholder="Enter a prefix"
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
-          )}
 
           <label htmlFor="text-file-content" className="block text-sm font-semibold text-gray-700">
             Text
