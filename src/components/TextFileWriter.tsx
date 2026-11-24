@@ -95,18 +95,22 @@ async function clearFolderHandle(): Promise<void> {
   }).finally(() => database.close());
 }
 
-const PREFIX_OPTIONS = [
-  '1st',
-  '2nd',
-  '3rd',
-  '4th',
-  '5th',
-  '6th',
-  '7th',
-  '8th',
-  '9th',
-  '10th',
-] as const;
+const MAX_ORDINAL_PREFIX = 100;
+const PREFIX_OPTIONS = Array.from({ length: MAX_ORDINAL_PREFIX }, (_, index) => {
+  const number = index + 1;
+  const lastTwoDigits = number % 100;
+  const suffix = lastTwoDigits >= 11 && lastTwoDigits <= 13
+    ? 'th'
+    : number % 10 === 1
+      ? 'st'
+      : number % 10 === 2
+        ? 'nd'
+        : number % 10 === 3
+          ? 'rd'
+          : 'th';
+
+  return `${number}${suffix}`;
+});
 
 const CUSTOM_PREFIX = 'custom';
 const WRITER_SETTINGS_KEY = 'palettelab_text_writer_settings';
@@ -124,7 +128,7 @@ function isTextWriterSettings(value: unknown): value is TextWriterSettings {
   return (
     typeof settings.text === 'string' &&
     typeof settings.prefix === 'string' &&
-    (PREFIX_OPTIONS.includes(settings.prefix as (typeof PREFIX_OPTIONS)[number]) ||
+    (PREFIX_OPTIONS.includes(settings.prefix) ||
       settings.prefix === CUSTOM_PREFIX) &&
     typeof settings.customPrefix === 'string'
   );
@@ -285,9 +289,7 @@ export function TextFileWriter() {
   };
 
   const stepPrefix = (direction: -1 | 1) => {
-    const currentIndex = PREFIX_OPTIONS.indexOf(
-      prefix === CUSTOM_PREFIX ? '1st' : prefix as (typeof PREFIX_OPTIONS)[number]
-    );
+    const currentIndex = PREFIX_OPTIONS.indexOf(prefix === CUSTOM_PREFIX ? '1st' : prefix);
     const nextIndex = (currentIndex + direction + PREFIX_OPTIONS.length) % PREFIX_OPTIONS.length;
     setPrefix(PREFIX_OPTIONS[nextIndex]);
   };
